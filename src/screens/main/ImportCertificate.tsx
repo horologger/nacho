@@ -5,7 +5,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { HandlesStackParamList } from "@/Navigation";
 import { open } from "@/file";
 import { useStore } from "@/Store";
-import { pubFromPath } from "@/keys";
+import { pubFromPath, p2trScriptFromPub } from "@/keys";
 import { isCert, extractCertData } from "@/cert";
 import { Layout } from "@/ui/Layout";
 import { Header } from "@/ui/Header";
@@ -142,7 +142,7 @@ export default function ImportCertificate({ navigation }: Props) {
     if (
       handleData === undefined ||
       xpub === null ||
-      pubFromPath(xpub, handleData.path) !== script_pubkey
+      p2trScriptFromPub(pubFromPath(xpub, handleData.path)) !== script_pubkey
     ) {
       setError("invalidHandle");
       return;

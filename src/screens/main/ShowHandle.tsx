@@ -4,7 +4,7 @@ import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { HandlesStackParamList } from "@/Navigation";
 import { useStore } from "@/Store";
-import { pubFromPath } from "@/keys";
+import { pubFromPath, p2trScriptFromPub } from "@/keys";
 import { buildCert } from "@/cert";
 import { save } from "@/file";
 import { Layout } from "@/ui/Layout";
@@ -40,6 +40,7 @@ export default function ShowHandle({ route, navigation }: Props) {
   }
 
   const pubkey = pubFromPath(xpub, handleData.path);
+  const script_pubkey = p2trScriptFromPub(pubkey);
 
   const handleRemoveHandle = () => {
     removeHandle(handle);
@@ -53,13 +54,13 @@ export default function ShowHandle({ route, navigation }: Props) {
       return;
     }
 
-    await save(`${handle}.cert.json`, buildCert(certData, handle, pubkey));
+    await save(`${handle}.cert.json`, buildCert(certData, handle, script_pubkey));
   };
 
   const handleDownloadRequest = async () => {
     await save(`${handle}.req.json`, {
       handle: handle,
-      script_pubkey: pubkey,
+      script_pubkey,
     });
   };
 

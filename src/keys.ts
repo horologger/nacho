@@ -28,17 +28,6 @@ export function xpubFromXprv(xprv: string): string {
   return hdkey.publicExtendedKey;
 }
 
-export function pubkeyFromXpub(xpub: string, path: string): string {
-  const hdkey = HDKey.fromExtendedKey(xpub);
-  const derived = hdkey.derive(path);
-
-  if (!derived.publicKey) {
-    throw new Error("Unable to derive public key");
-  }
-
-  return Buffer.from(derived.publicKey).toString("hex");
-}
-
 export function prvkeyFromXprv(xprv: string, path: string): string {
   const hdkey = HDKey.fromExtendedKey(xprv);
   const derived = hdkey.derive(path);
@@ -66,4 +55,8 @@ export function prvFromPath(xprv: string, path: string): string {
     throw new Error("Unable to derive private key");
   }
   return Buffer.from(derived.privateKey).toString("hex");
+}
+
+export function p2trScriptFromPub(pub: string): string {
+  return "5120" + pub.slice(2, 66);
 }
