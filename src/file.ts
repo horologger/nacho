@@ -15,7 +15,9 @@ export async function save(fileName: string, data: unknown): Promise<void> {
     URL.revokeObjectURL(url);
   } else {
     const file = new File(Paths.cache, fileName);
-    await file.create();
+    if (file.exists) {
+      await file.delete();
+    }
     await file.write(content);
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(file.uri, {
