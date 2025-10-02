@@ -1,5 +1,12 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, Dimensions } from "react-native";
+import React, { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Dimensions,
+  TouchableOpacity,
+} from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useStore } from "@/Store";
 import { validateMnemonic, xprvFromMnemonic, xpubFromXprv } from "@/keys";
@@ -19,6 +26,7 @@ export default function ({ navigation, route }: Props) {
   const { setupKeystore } = useStore();
   const [inputWords, setInputWords] = useState<string[]>(Array(12).fill(""));
   const [error, setError] = useState<ValidationError>(null);
+  const inputRefs = useRef<(TextInput | null)[]>(Array(12).fill(null));
 
   const handleWordChange = (index: number, value: string) => {
     const newWords = [...inputWords];
@@ -88,9 +96,14 @@ export default function ({ navigation, route }: Props) {
 
       <View style={styles.inputContainer}>
         {inputWords.map((word, index) => (
-          <View key={index} style={styles.wordInputContainer}>
+          <TouchableOpacity
+            key={index}
+            style={styles.wordInputContainer}
+            onPress={() => inputRefs.current[index]?.focus()}
+          >
             <Text style={styles.wordInputNumber}>{index + 1}.</Text>
             <TextInput
+              ref={(ref) => (inputRefs.current[index] = ref)}
               style={styles.wordInput}
               value={word}
               onChangeText={(value) => handleWordChange(index, value)}
@@ -101,7 +114,7 @@ export default function ({ navigation, route }: Props) {
               autoCorrect={false}
               autoComplete="off"
             />
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
 
@@ -122,7 +135,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   wordInputContainer: {
-    width: (width - 60) / 3 - 8,
+    width: (width - 60) / 2 - 6,
     backgroundColor: "#1A1A1A",
     borderRadius: 8,
     padding: 12,

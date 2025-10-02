@@ -54,7 +54,10 @@ export default function ShowHandle({ route, navigation }: Props) {
       return;
     }
 
-    await save(`${handle}.cert.json`, buildCert(certData, handle, script_pubkey));
+    await save(
+      `${handle}.cert.json`,
+      buildCert(certData, handle, script_pubkey),
+    );
   };
 
   const handleDownloadRequest = async () => {

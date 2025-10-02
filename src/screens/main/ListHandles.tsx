@@ -139,6 +139,7 @@ export default function ListHandles({ navigation }: Props) {
 
   return (
     <Layout
+      scrollable={false}
       footer={
         <>
           <Button

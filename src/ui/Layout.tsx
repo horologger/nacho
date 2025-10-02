@@ -12,32 +12,40 @@ interface LayoutProps {
   children: ReactNode;
   footer?: ReactNode;
   overlay?: boolean;
+  scrollable?: boolean;
 }
 
-export function Layout({ children, footer, overlay = false }: LayoutProps) {
+export function Layout({
+  children,
+  footer,
+  overlay = false,
+  scrollable = true,
+}: LayoutProps) {
   const insets = useSafeAreaInsets();
 
-  const content = (
-    <View
-      style={[
-        styles.content,
-        { paddingBottom: footer ? 0 : insets.bottom + 20 },
-      ]}
+  const content = scrollable ? (
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
       {children}
-    </View>
+    </ScrollView>
+  ) : (
+    <View style={styles.content}>{children}</View>
   );
 
   return (
     <KeyboardAvoidingView
       style={[styles.container, { paddingTop: insets.top }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
       keyboardVerticalOffset={0}
     >
       {overlay && <View style={styles.overlay} />}
       {content}
       {footer && (
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
           {footer}
         </View>
       )}
@@ -50,14 +58,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000000",
   },
+  scrollView: {
+    flex: 1,
+  },
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
-  footer: {
+  scrollContent: {
     paddingHorizontal: 20,
+  },
+  footer: {
+    backgroundColor: "#000000",
     paddingTop: 20,
-    zIndex: 10,
   },
   overlay: {
     position: "absolute",

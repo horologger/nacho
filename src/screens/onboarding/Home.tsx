@@ -11,6 +11,7 @@ type Props = NativeStackScreenProps<OnboardingStackParamList, "Home">;
 export default function ({ navigation }: Props) {
   return (
     <Layout
+      scrollable={false}
       footer={
         <>
           <Button

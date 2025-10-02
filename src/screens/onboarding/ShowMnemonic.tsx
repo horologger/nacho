@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   wordItem: {
-    width: (width - 60) / 3 - 8,
+    width: (width - 60) / 2 - 6,
     backgroundColor: "#1A1A1A",
     borderRadius: 8,
     padding: 12,
