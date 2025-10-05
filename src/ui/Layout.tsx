@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
   footer: {
     backgroundColor: "#000000",
     paddingTop: 20,
+    paddingHorizontal: 20,
     zIndex: 10,
   },
   overlay: {

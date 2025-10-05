@@ -95,7 +95,7 @@ export default function ShowHandle({ route, navigation }: Props) {
             {!showRemoveConfirm ? (
               <>
                 <Button
-                  text="Download Certificate Request"
+                  text="Download Request"
                   onPress={handleDownloadRequest}
                   type="main"
                 />
