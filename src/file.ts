@@ -18,7 +18,7 @@ export async function save(fileName: string, data: unknown): Promise<void> {
     if (file.exists) {
       await file.delete();
     }
-    await file.write(content);
+    await file.write(content, { encoding: "utf8" });
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(file.uri, {
         mimeType: "application/json",
