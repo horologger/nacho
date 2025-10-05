@@ -31,17 +31,23 @@ const getSecureStorage = () => {
       try {
         return await SecureStore.getItemAsync("xprv", {
           authenticationPrompt: "Access your private key",
-          requireAuthentication: true,
+          requireAuthentication: false,
         });
       } catch (error) {
+        console.error("Failed to get xprv:", error);
         throw error;
       }
     },
     async setXprv(value: string): Promise<void> {
-      await SecureStore.setItemAsync("xprv", value, {
-        authenticationPrompt: "Secure your private key",
-        requireAuthentication: true,
-      });
+      try {
+        await SecureStore.setItemAsync("xprv", value, {
+          authenticationPrompt: "Secure your private key",
+          requireAuthentication: false,
+        });
+      } catch (error) {
+        console.error("Failed to set xprv:", error);
+        throw error;
+      }
     },
     async removeXprv(): Promise<void> {
       await SecureStore.deleteItemAsync("xprv");
