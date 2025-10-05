@@ -1,11 +1,9 @@
 import React, { ReactNode } from "react";
 import {
   View,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface LayoutProps {
@@ -24,24 +22,21 @@ export function Layout({
   const insets = useSafeAreaInsets();
 
   const content = scrollable ? (
-    <ScrollView
+    <KeyboardAwareScrollView
       style={styles.scrollView}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
+      enableOnAndroid={true}
     >
       {children}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   ) : (
     <View style={styles.content}>{children}</View>
   );
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
-      behavior="padding"
-      keyboardVerticalOffset={0}
-    >
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {overlay && <View style={styles.overlay} />}
       {content}
       {footer && (
@@ -49,7 +44,7 @@ export function Layout({
           {footer}
         </View>
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -71,6 +66,7 @@ const styles = StyleSheet.create({
   footer: {
     backgroundColor: "#000000",
     paddingTop: 20,
+    zIndex: 10,
   },
   overlay: {
     position: "absolute",
