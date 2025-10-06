@@ -18,7 +18,8 @@ export async function save(fileName: string, data: unknown): Promise<void> {
     if (file.exists) {
       await file.delete();
     }
-    await file.write(content, { encoding: "utf8" });
+    // @ts-ignore - workaround for expo-file-system bug where options param is required but breaks functionality
+    await file.write(content);
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(file.uri, {
         mimeType: "application/json",
