@@ -72,7 +72,7 @@ export default function SignNostrEvent({ navigation, route }: Props) {
       }
 
       const privateKey = prvFromPath(xprv, handleData.path);
-      const signedEvent = signNostrEvent(nostrEvent, privateKey);
+      const signedEvent = await signNostrEvent(nostrEvent, privateKey);
 
       const signedFileName = selectedFileName
         ? selectedFileName.replace(".json", "_signed.json")

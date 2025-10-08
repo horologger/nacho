@@ -21,6 +21,7 @@
     "buffer": "^6.0.3",
     "expo": "54.0.12",
     "expo-camera": "~17.0.8",
+    "expo-crypto": "^15.0.7",
     "expo-document-picker": "~14.0.7",
     "expo-file-system": "^19.0.16",
     "expo-secure-store": "~15.0.7",

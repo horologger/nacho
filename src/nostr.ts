@@ -1,8 +1,8 @@
 import * as secp256k1 from "@noble/secp256k1";
+import * as Crypto from "expo-crypto";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { hmac } from "@noble/hashes/hmac.js";
 
-// Configure secp256k1 hash functions
 secp256k1.hashes.sha256 = (message) => sha256(message);
 secp256k1.hashes.hmacSha256 = (key, message) => hmac(sha256, key, message);
 
@@ -54,7 +54,10 @@ function getPub(prv: string): string {
   return Buffer.from(publicKeyBytes).toString("hex");
 }
 
-function getEventHash(pub: string, data: NostrEventData): string {
+async function getEventHash(
+  pub: string,
+  data: NostrEventData,
+): Promise<string> {
   const serialized = JSON.stringify([
     0,
     pub,
@@ -64,13 +67,20 @@ function getEventHash(pub: string, data: NostrEventData): string {
     data.content,
   ]);
 
-  const hash = sha256(new TextEncoder().encode(serialized));
-  return Buffer.from(hash).toString("hex");
+  const digest = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    serialized,
+    { encoding: Crypto.CryptoEncoding.HEX },
+  );
+  return digest;
 }
 
-export function signNostrEvent(data: NostrEventData, prv: string): NostrEvent {
+export async function signNostrEvent(
+  data: NostrEventData,
+  prv: string,
+): Promise<NostrEvent> {
   const pub = getPub(prv);
-  const id = getEventHash(pub, data);
+  const id = await getEventHash(pub, data);
 
   const prvBytes = Buffer.from(prv, "hex");
   const hashBytes = Buffer.from(id, "hex");
