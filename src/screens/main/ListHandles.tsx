@@ -1,4 +1,5 @@
 import React, { useLayoutEffect, useState, useEffect } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -29,13 +30,39 @@ export default function ListHandles({ navigation }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [proposedHandles, setProposedHandles] = useState<string[]>([]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      setSearchQuery("");
+      setProposedHandles([]);
+    }, []),
+  );
+
   const fetchProposedHandles = async (query: string): Promise<string[]> => {
-    return [];
+    try {
+      const response = await fetch(
+        "https://testnet.atbitcoin.com/api/proposed",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ handle: query }),
+        },
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data.available_subspaces || [];
+    } catch (error) {
+      console.error("Failed to fetch proposed handlers:", error);
+      return [];
+    }
   };
 
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
-      if (searchQuery.trim()) {
+      if (searchQuery) {
         const results = await fetchProposedHandles(searchQuery);
         setProposedHandles(results);
       } else {
@@ -159,7 +186,7 @@ export default function ListHandles({ navigation }: Props) {
         <TextInput
           value={searchQuery}
           onChangeText={(text) =>
-            setSearchQuery(text.toLowerCase().replace(/[^a-z0-9]/g, ""))
+            setSearchQuery(text.toLowerCase().replace(/[^a-z0-9\-]/g, ""))
           }
           placeholder="Search handles"
           placeholderTextColor="#4A4A4A"

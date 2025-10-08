@@ -107,7 +107,9 @@ export default function ({ navigation, route }: Props) {
           >
             <Text style={styles.wordInputNumber}>{index + 1}.</Text>
             <TextInput
-              ref={(ref) => { inputRefs.current[index] = ref; }}
+              ref={(ref) => {
+                inputRefs.current[index] = ref;
+              }}
               style={styles.wordInput}
               value={word}
               onChangeText={(value) => handleWordChange(index, value)}
