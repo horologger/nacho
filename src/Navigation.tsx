@@ -10,6 +10,7 @@ import ListHandles from "./screens/main/ListHandles";
 import ShowHandle from "./screens/main/ShowHandle";
 import AddHandle from "./screens/main/AddHandle";
 import ImportCertificate from "./screens/main/ImportCertificate";
+import SignNostrEvent from "./screens/main/SignNostrEvent";
 
 export type RootStackParamList = {
   Main: undefined;
@@ -32,6 +33,7 @@ export type HandlesStackParamList = {
   ShowHandle: { handle: string };
   AddHandle: { initialHandle?: string };
   ImportCertificate: undefined;
+  SignNostrEvent: { handle: string };
 };
 
 const HandlesStack = createNativeStackNavigator<HandlesStackParamList>();
@@ -105,6 +107,11 @@ function MainNavigator() {
         name="ImportCertificate"
         component={ImportCertificate}
         options={{ title: "Certificate" }}
+      />
+      <HandlesStack.Screen
+        name="SignNostrEvent"
+        component={SignNostrEvent}
+        options={{ title: "Nostr Event" }}
       />
     </HandlesStack.Navigator>
   );

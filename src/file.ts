@@ -29,7 +29,7 @@ export async function save(fileName: string, data: unknown): Promise<void> {
   }
 }
 
-export async function open(): Promise<unknown> {
+export async function open(): Promise<{ data: unknown; filename: string }> {
   const result = await DocumentPicker.getDocumentAsync({
     type: "application/json",
     multiple: false,
@@ -55,7 +55,8 @@ export async function open(): Promise<unknown> {
   const fileContent = await response.text();
 
   try {
-    return JSON.parse(fileContent);
+    const data = JSON.parse(fileContent);
+    return { data, filename: file.name };
   } catch (error) {
     throw new Error("Invalid JSON format in file");
   }

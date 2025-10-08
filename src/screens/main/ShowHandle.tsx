@@ -85,11 +85,18 @@ export default function ShowHandle({ route, navigation }: Props) {
       overlay={showRemoveConfirm}
       footer={
         handleData.cert ? (
-          <Button
-            text="Download Certificate"
-            onPress={handleDownloadCertificate}
-            type="main"
-          />
+          <>
+            <Button
+              text="Sign Nostr Event"
+              onPress={() => navigation.navigate("SignNostrEvent", { handle })}
+              type="main"
+            />
+            <Button
+              text="Download Certificate"
+              onPress={handleDownloadCertificate}
+              type="secondary"
+            />
+          </>
         ) : (
           <>
             {!showRemoveConfirm ? (

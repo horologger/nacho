@@ -29,11 +29,11 @@ export default function ImportKeystore({ navigation }: Props) {
     setSelectedFileName(null);
 
     try {
-      const parsedData = await open();
+      const { data, filename } = await open();
 
-      if (isKeystoreData(parsedData)) {
-        setKeystoreData(parsedData);
-        setSelectedFileName("keystore.json");
+      if (isKeystoreData(data)) {
+        setKeystoreData(data);
+        setSelectedFileName(filename);
         setValidationError(null);
       } else {
         setValidationError("Invalid keystore format in file");

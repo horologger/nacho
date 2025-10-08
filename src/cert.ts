@@ -15,7 +15,7 @@ export function isCertData(obj: unknown): obj is CertData {
   if (!obj || typeof obj !== "object") {
     return false;
   }
-  const cert = obj as Record<string, unknown>;
+  const cert = obj as Partial<CertData>;
   if (typeof cert.anchor !== "string") {
     return false;
   }
@@ -36,7 +36,7 @@ export function isCert(obj: unknown): obj is Cert {
   if (!isCertData(obj)) {
     return false;
   }
-  const cert = obj as Record<string, unknown>;
+  const cert = obj as Partial<Cert>;
   if (typeof cert.handle !== "string") {
     return false;
   }

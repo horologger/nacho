@@ -45,7 +45,7 @@ export function pubFromPath(xpub: string, path: string): string {
   if (!derived.publicKey) {
     throw new Error("Unable to derive public key");
   }
-  return Buffer.from(derived.publicKey).toString("hex");
+  return Buffer.from(derived.publicKey).toString("hex").slice(2, 66);
 }
 
 export function prvFromPath(xprv: string, path: string): string {
@@ -58,5 +58,5 @@ export function prvFromPath(xprv: string, path: string): string {
 }
 
 export function p2trScriptFromPub(pub: string): string {
-  return "5120" + pub.slice(2, 66);
+  return "5120" + pub;
 }
