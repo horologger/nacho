@@ -4,19 +4,47 @@ if (typeof global.Buffer === "undefined") {
   });
 }
 
-if (typeof window !== "undefined" && !("BarcodeDetector" in window)) {
+if (!("BarcodeDetector" in window)) {
   import("@undecaf/zbar-wasm")
     .then((zbarWasm) => {
-      (window as any).zbarWasm = zbarWasm;
-      return import("@undecaf/barcode-detector-polyfill");
-    })
-    .then(({ BarcodeDetectorPolyfill }) => {
-      (window as any).BarcodeDetector = BarcodeDetectorPolyfill;
+      (window as any).BarcodeDetector = class BarcodeDetector {
+        constructor(options: any = {}) {}
+
+        async detect(imageData: any) {
+          try {
+            const results = await zbarWasm.scanRGBABuffer(
+              imageData.data || imageData,
+              imageData.width,
+              imageData.height,
+            );
+            return results.map((result: any) => ({
+              rawValue: result.decode(),
+              format: result.typeName,
+              boundingBox: result.points
+                ? {
+                    x: Math.min(...result.points.map((p: any) => p.x)),
+                    y: Math.min(...result.points.map((p: any) => p.y)),
+                    width:
+                      Math.max(...result.points.map((p: any) => p.x)) -
+                      Math.min(...result.points.map((p: any) => p.x)),
+                    height:
+                      Math.max(...result.points.map((p: any) => p.y)) -
+                      Math.min(...result.points.map((p: any) => p.y)),
+                  }
+                : undefined,
+            }));
+          } catch (error) {
+            return [];
+          }
+        }
+      };
     })
     .catch((error) => {
-      if (error.message && error.message.includes("import.meta")) {
-        return;
-      }
-      console.warn("Failed to load barcode detector polyfill:", error);
+      console.warn("Failed to load zbar-wasm:", error);
+      (window as any).BarcodeDetector = class {
+        async detect() {
+          return [];
+        }
+      };
     });
 }
