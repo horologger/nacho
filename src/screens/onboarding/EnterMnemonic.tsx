@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  Dimensions,
   TouchableOpacity,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -129,25 +128,24 @@ export default function ({ navigation, route }: Props) {
   );
 }
 
-const { width } = Dimensions.get("window");
-
 const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 12,
     marginTop: 20,
     marginBottom: 30,
   },
   wordInputContainer: {
-    width: (width - 60) / 2 - 6,
+    width: "48%",
     backgroundColor: "#1A1A1A",
     borderRadius: 8,
     padding: 12,
+    marginBottom: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    minWidth: 0,
   },
   wordInputNumber: {
     fontSize: 14,
@@ -162,6 +160,7 @@ const styles = StyleSheet.create({
     padding: 0,
     margin: 0,
     textAlign: "left",
+    minWidth: 0,
     // @ts-ignore - web-only style to remove focus outline
     outlineStyle: "none",
   } as any,

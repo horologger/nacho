@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Dimensions,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { generateMnemonic, xpubFromMnemonic } from "@/keys";
@@ -148,8 +147,6 @@ export default function ({ navigation }: Props) {
   );
 }
 
-const { width } = Dimensions.get("window");
-
 const styles = StyleSheet.create({
   warningsContainer: {
     flex: 1,
@@ -187,14 +184,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 12,
     marginBottom: 30,
   },
   wordItem: {
-    width: (width - 60) / 2 - 6,
+    width: "48%",
     backgroundColor: "#1A1A1A",
     borderRadius: 8,
     padding: 12,
+    marginBottom: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
-  Dimensions,
 } from "react-native";
 import { save } from "@/file";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -211,8 +210,6 @@ export default function ListHandles({ navigation }: Props) {
     </Layout>
   );
 }
-
-const { width } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
   searchContainer: {
