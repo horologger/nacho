@@ -23,11 +23,7 @@ export default function ({ navigation, route }: Props) {
   type ValidationError = "invalid" | "mismatch" | null;
 
   const { setupKeystore } = useStore();
-  const [inputWords, setInputWords] = useState<string[]>(
-    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(
-      " ",
-    ),
-  );
+  const [inputWords, setInputWords] = useState<string[]>(Array(12).fill(""));
   const [error, setError] = useState<ValidationError>(null);
   const inputRefs = useRef<(TextInput | null)[]>(Array(12).fill(null));
 

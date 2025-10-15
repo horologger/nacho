@@ -3,7 +3,6 @@ import { HDKey } from "@scure/bip32";
 import { wordlist } from "@scure/bip39/wordlists/english";
 
 export function generateMnemonic(): string {
-  return "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
   return bip39.generateMnemonic(wordlist, 128);
 }
 
