@@ -9,7 +9,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.impervious.nacho"
+      "bundleIdentifier": "com.impervious.nacho",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,11 +18,27 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.impervious.nacho"
+      "package": "com.impervious.nacho",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-secure-store"]
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Nacho to access your camera",
+          "recordAudioAndroid": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5bfb056c-2b5a-43d7-9143-faf24508e03d"
+      }
+    },
+    "owner": "impervious"
   }
 }

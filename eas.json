@@ -1,0 +1,32 @@
+{
+  "cli": {
+    "version": ">= 5.4.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "android": {
+        "buildType": "aab"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal"
+      },
+      "ios": {
+        "ascAppId": "1234567890"
+      }
+    }
+  }
+}
