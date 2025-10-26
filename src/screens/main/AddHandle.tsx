@@ -28,10 +28,37 @@ export default function ({ navigation, route }: Props) {
   const [error, setError] = useState<AddHandleError>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { handles, createHandle } = useStore();
-  const canAdd =
-    handles !== null &&
-    !isLoading &&
-    /^[0-9a-z]{1,64}@[0-9a-z]{1,64}$/.test(handle);
+
+  const isValidSLabel = (label: string): boolean => {
+    if (!label || label.length > 62) {
+      return false;
+    }
+    let verifyRange = label;
+    if (label.startsWith("xn--") && label.length > "xn--".length) {
+      verifyRange = label.slice("xn--".length);
+    }
+    if (verifyRange[0] === "-" || verifyRange[verifyRange.length - 1] === "-") {
+      return false;
+    }
+    let prev = "";
+    for (const c of verifyRange) {
+      if (c === "-" && prev === "-") {
+        return false;
+      }
+      if (!/^[a-z0-9-]$/.test(c)) {
+        return false;
+      }
+      prev = c;
+    }
+    return true;
+  };
+
+  const isValidHandle = (handle: string): boolean => {
+    const [l, r] = handle.split("@");
+    return isValidSLabel(l) && isValidSLabel(r || "");
+  };
+
+  const canAdd = handles !== null && !isLoading && isValidHandle(handle);
 
   const getMessage = (error: AddHandleError): string => {
     switch (error) {
