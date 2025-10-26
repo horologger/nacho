@@ -1,9 +1,11 @@
 import * as bip39 from "@scure/bip39";
 import { HDKey } from "@scure/bip32";
 import { wordlist } from "@scure/bip39/wordlists/english";
+import { randomBytes } from "@noble/hashes/utils";
 
 export function generateMnemonic(): string {
-  return bip39.generateMnemonic(wordlist, 128);
+  const entropy = randomBytes(16); // 128 bits / 8 = 16 bytes
+  return bip39.entropyToMnemonic(entropy, wordlist);
 }
 
 export function validateMnemonic(mnemonic: string): boolean {
