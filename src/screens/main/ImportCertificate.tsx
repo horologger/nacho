@@ -121,7 +121,7 @@ export default function ImportCertificate({ navigation }: Props) {
 
   const handleFileImport = async () => {
     try {
-      const data = await open();
+      const { data } = await open();
       applyJsonData(data);
     } catch (error) {
       if (error instanceof Error && error.name === "UserCancel") {
