@@ -14,6 +14,7 @@ import { HandlesStackParamList } from "@/Navigation";
 import { HandleData, useStore } from "@/Store";
 import { Layout } from "@/ui/Layout";
 import { Button } from "@/ui/Button";
+import { fetchProposedHandles } from "@/api";
 
 type ListHandlesNavigationProp = NativeStackNavigationProp<
   HandlesStackParamList,
@@ -35,29 +36,6 @@ export default function ListHandles({ navigation }: Props) {
       setProposedHandles([]);
     }, []),
   );
-
-  const fetchProposedHandles = async (query: string): Promise<string[]> => {
-    try {
-      const response = await fetch(
-        "https://testnet.atbitcoin.com/api/proposed",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ handle: query }),
-        },
-      );
-      if (!response.ok) {
-        throw new Error(`HTTP status: ${response.status}`);
-      }
-      const data = await response.json();
-      return data.available_subspaces || [];
-    } catch (error) {
-      console.error("Failed to fetch proposed handlers:", error);
-      return [];
-    }
-  };
 
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
@@ -94,12 +72,12 @@ export default function ListHandles({ navigation }: Props) {
 
   const handlesList = handles ? Object.entries(handles) : [];
   const combinedHandles = [
-    ...proposedHandles
-      .filter((proposedHandle) => !handles || !handles[proposedHandle])
-      .map((handle) => [handle, null] as [string, null]),
     ...(searchQuery
       ? handlesList.filter(([handleName]) => handleName.includes(searchQuery))
       : handlesList),
+    ...proposedHandles
+      .filter((proposedHandle) => !handles || !handles[proposedHandle])
+      .map((handle) => [handle, null] as [string, null]),
   ];
 
   const renderItem = ({ item }: { item: [string, HandleData | null] }) => {

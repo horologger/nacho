@@ -67,3 +67,11 @@ export function buildCert(
     ...certData,
   };
 }
+
+export function areCertDataEqual(cert1: CertData, cert2: CertData): boolean {
+  return (
+    cert1.anchor === cert2.anchor &&
+    cert1.witness.type === cert2.witness.type &&
+    cert1.witness.data === cert2.witness.data
+  );
+}

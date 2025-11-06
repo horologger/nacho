@@ -8,6 +8,7 @@ import { Layout } from "@/ui/Layout";
 import { Header } from "@/ui/Header";
 import { Button } from "@/ui/Button";
 import { Message } from "@/ui/Message";
+import { fetchHandleStatus } from "@/api";
 
 type AddHandleNavigationProp = NativeStackNavigationProp<
   HandlesStackParamList,
@@ -21,7 +22,7 @@ interface Props {
   route: AddHandleRouteProp;
 }
 
-type AddHandleError = "handleExists" | null;
+type AddHandleError = "handleExists" | "handleTaken" | "handleInvalid" | null;
 
 export default function ({ navigation, route }: Props) {
   const [handle, setHandle] = useState(route.params?.initialHandle || "");
@@ -64,6 +65,10 @@ export default function ({ navigation, route }: Props) {
     switch (error) {
       case "handleExists":
         return "This handle already exists in your keystore.";
+      case "handleTaken":
+        return "This handle is already taken";
+      case "handleInvalid":
+        return "This handle is invalid";
       default:
         return "";
     }
@@ -77,6 +82,17 @@ export default function ({ navigation, route }: Props) {
       return;
     }
     setIsLoading(true);
+    const { status } = await fetchHandleStatus(handle);
+    switch (status) {
+      case "taken":
+        setError("handleTaken");
+        setIsLoading(false);
+        return;
+      case "invalid":
+        setError("handleInvalid");
+        setIsLoading(false);
+        return;
+    }
     try {
       await createHandle(handle);
       navigation.replace("ShowHandle", { handle });
@@ -85,11 +101,12 @@ export default function ({ navigation, route }: Props) {
       throw err;
     }
   };
+
   return (
     <Layout
       footer={
         <Button
-          text={isLoading ? "Adding..." : "Add Handle"}
+          text={isLoading ? "Checking..." : "Add Handle"}
           onPress={addHandle}
           type="main"
           disabled={!canAdd}

@@ -20,7 +20,6 @@
     "expo": "54.0.22",
     "expo-camera": "~17.0.9",
     "expo-crypto": "^15.0.7",
-    "expo-dev-client": "~6.0.17",
     "expo-document-picker": "~14.0.7",
     "expo-file-system": "^19.0.16",
     "expo-secure-store": "~15.0.7",

@@ -8,7 +8,7 @@ import React, {
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
-import { CertData, isCertData } from "@/cert";
+import { CertData, isCertData, areCertDataEqual } from "@/cert";
 import { xpubFromXprv } from "@/keys";
 
 const getSecureStorage = () => {
@@ -231,6 +231,10 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
 
     const handleData = handles[handle];
     if (handleData === undefined) {
+      return;
+    }
+
+    if (handleData.cert && cert && areCertDataEqual(handleData.cert, cert)) {
       return;
     }
 

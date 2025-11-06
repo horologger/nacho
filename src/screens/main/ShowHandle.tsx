@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -10,6 +10,9 @@ import { save } from "@/file";
 import { Layout } from "@/ui/Layout";
 import { Header } from "@/ui/Header";
 import { Button } from "@/ui/Button";
+import { Message } from "@/ui/Message";
+import { fetchHandleStatus } from "@/api";
+import { extractCertData } from "@/cert";
 
 type ShowHandleRouteProp = RouteProp<HandlesStackParamList, "ShowHandle">;
 type ShowHandleNavigationProp = NativeStackNavigationProp<
@@ -24,23 +27,34 @@ interface Props {
 
 export default function ShowHandle({ route, navigation }: Props) {
   const { handle } = route.params;
-  const { xpub, handles, removeHandle } = useStore();
+  const { xpub, handles, removeHandle, setHandleCertData } = useStore();
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [pubkeyMismatch, setPubkeyMismatch] = useState(false);
 
   const handleData = handles?.[handle];
 
   if (!xpub || !handleData) {
-    return (
-      <Layout>
-        <View style={styles.notFoundContainer}>
-          <Text style={styles.notFoundText}>Handle not found</Text>
-        </View>
-      </Layout>
-    );
+    return;
   }
 
   const pubkey = pubFromPath(xpub, handleData.path);
   const script_pubkey = p2trScriptFromPub(pubkey);
+
+  useEffect(() => {
+    fetchAndUpdateCert();
+  }, [handle]);
+
+  const fetchAndUpdateCert = async () => {
+    const status = await fetchHandleStatus(handle);
+    if (status.certificate) {
+      if (status.certificate.script_pubkey === script_pubkey) {
+        const certData = extractCertData(status.certificate);
+        await setHandleCertData(handle, certData);
+      } else {
+        setPubkeyMismatch(true);
+      }
+    }
+  };
 
   const handleRemoveHandle = () => {
     removeHandle(handle);
@@ -84,60 +98,69 @@ export default function ShowHandle({ route, navigation }: Props) {
     <Layout
       overlay={showRemoveConfirm}
       footer={
-        handleData.cert ? (
-          <>
-            <Button
-              text="Sign Nostr Event"
-              onPress={() => navigation.navigate("SignNostrEvent", { handle })}
-              type="main"
+        showRemoveConfirm ? (
+          <View style={styles.confirmSection}>
+            <Header
+              headText="Remove"
+              tailText="Handle?"
+              subText="Are you sure you want to remove this handle?"
             />
-            <Button
-              text="Download Certificate"
-              onPress={handleDownloadCertificate}
-              type="secondary"
-            />
-          </>
+            <View style={styles.confirmButtons}>
+              <Button
+                text="Remove Handle"
+                onPress={handleRemoveHandle}
+                type="danger"
+              />
+              <Button
+                text="Cancel"
+                onPress={() => setShowRemoveConfirm(false)}
+                type="secondary"
+              />
+            </View>
+          </View>
         ) : (
           <>
-            {!showRemoveConfirm ? (
-              <>
-                <Button
-                  text="Download Request"
-                  onPress={handleDownloadRequest}
-                  type="main"
-                />
-                <Button
-                  text="Remove Handle"
-                  onPress={() => setShowRemoveConfirm(true)}
-                  type="danger"
-                />
-              </>
+            {handleData.cert && (
+              <Button
+                text="Sign Nostr Event"
+                onPress={() =>
+                  navigation.navigate("SignNostrEvent", { handle })
+                }
+                type="main"
+              />
+            )}
+            {handleData.cert ? (
+              <Button
+                text="Download Certificate"
+                onPress={handleDownloadCertificate}
+                type="secondary"
+              />
             ) : (
-              <View style={styles.confirmSection}>
-                <Header
-                  headText="Remove"
-                  tailText="Handle?"
-                  subText="Are you sure you want to remove this handle?"
-                />
-                <View style={styles.confirmButtons}>
-                  <Button
-                    text="Remove Handle"
-                    onPress={handleRemoveHandle}
-                    type="danger"
-                  />
-                  <Button
-                    text="Cancel"
-                    onPress={() => setShowRemoveConfirm(false)}
-                    type="secondary"
-                  />
-                </View>
-              </View>
+              <Button
+                text="Download Request"
+                onPress={handleDownloadRequest}
+                type="main"
+              />
+            )}
+            {(!handleData.cert || pubkeyMismatch) && (
+              <Button
+                text="Remove Handle"
+                onPress={() => setShowRemoveConfirm(true)}
+                type="danger"
+              />
             )}
           </>
         )
       }
     >
       <Text style={styles.title}>{renderHandleName(handle)}</Text>
+
+      {pubkeyMismatch && (
+        <Message
+          message="Handle certificate found but script_pubkey doesn't match. This handle may belong to a different key."
+          type="error"
+        />
+      )}
 
       <View style={styles.section}>
         <Text style={styles.label}>Public Key</Text>
@@ -159,15 +182,6 @@ export default function ShowHandle({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  notFoundContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  notFoundText: {
-    fontSize: 18,
-    color: "#D6D6D6",
-  },
   title: {
     fontSize: 28,
     fontWeight: "400",
