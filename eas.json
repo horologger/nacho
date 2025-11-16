@@ -4,15 +4,17 @@
   },
   "build": {
     "development": {
-      "developmentClient": true,
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "app-bundle"
+      }
     },
     "production": {
       "android": {
-        "buildType": "aab"
+        "buildType": "app-bundle"
       },
       "ios": {
         "buildConfiguration": "Release"
@@ -20,9 +22,14 @@
     }
   },
   "submit": {
-    "production": {
+    "preview": {
       "android": {
         "track": "internal"
+      }
+    },
+    "production": {
+      "android": {
+        "track": "production"
       },
       "ios": {
         "ascAppId": "1234567890"
