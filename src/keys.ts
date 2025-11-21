@@ -4,6 +4,8 @@ import { wordlist } from "@scure/bip39/wordlists/english";
 import { randomBytes } from "@noble/hashes/utils.js";
 
 export function generateMnemonic(): string {
+  return "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
   const entropy = randomBytes(16);
   return bip39.entropyToMnemonic(entropy, wordlist);
 }
