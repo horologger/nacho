@@ -17,7 +17,7 @@
     "@scure/bip39": "^1.6.0",
     "@undecaf/zbar-wasm": "^0.9.16",
     "buffer": "^6.0.3",
-    "expo": "54.0.23",
+    "expo": "~54.0.25",
     "expo-camera": "~17.0.9",
     "expo-crypto": "^15.0.7",
     "expo-document-picker": "~14.0.7",

@@ -72,7 +72,7 @@ export function isHandleStatus(obj: unknown): obj is HandleStatus {
     if (h.certificate !== undefined) {
       return typeof h.script_pubkey === "string" && isCert(h.certificate);
     }
-    return h.script_pubkey === undefined && typeof h.script_pubkey === "string";
+    return h.script_pubkey === undefined || typeof h.script_pubkey === "string";
   }
   return true;
 }
