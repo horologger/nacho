@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -65,55 +65,69 @@ export default function ShowHandle({ route, navigation }: Props) {
   const pubkey = pubFromPath(xpub, handleData.path);
   const script_pubkey = p2trScriptFromPub(pubkey);
 
-  const { requestPurchase, fetchProducts } = (() => {
-    if (!useIAP) {
-      return {
-        requestPurchase: async () => {
-          const result = await claimHandleGoogleIAP(
-            handle,
-            script_pubkey,
-            "test_valid_purchase",
-          );
-          if (result.error) {
-            setError(result.error);
-          } else {
-            await applyHandleStatus(result.handle_status);
-          }
-        },
-        fetchProducts: async () => {
-          return [];
-        },
-      };
-    }
+  const claimParamsRef = useRef({ handle, script_pubkey });
 
-    return useIAP({
-      onPurchaseSuccess: async (purchase) => {
-        if (!purchase.purchaseToken) {
-          setError("No purchase token received");
-          return;
-        }
-        const result = await claimHandleGoogleIAP(
-          handle,
-          script_pubkey,
-          purchase.purchaseToken,
-        );
-        if (result.error) {
-          setError(result.error);
-        } else {
-          await applyHandleStatus(result.handle_status);
-        }
-      },
-      onPurchaseError: (error) => {
-        if (error.code !== "user-cancelled") {
-          setError("Purchase failed: " + error.message);
-        }
-      },
-    });
-  })();
+  useEffect(() => {
+    claimParamsRef.current = { handle, script_pubkey };
+  }, [handle, script_pubkey]);
+
+  const { requestPurchase, finishTransaction } = useIAP ? useIAP({
+    onPurchaseSuccess: async (purchase) => {
+      if (!purchase.purchaseToken) {
+        setError("No purchase token received");
+        return;
+      }
+      const { handle, script_pubkey } = claimParamsRef.current;
+      const result = await claimHandleGoogleIAP(
+        handle,
+        script_pubkey,
+        purchase.purchaseToken,
+      );
+      if (result.error) {
+        setError(result.error);
+      } else {
+        await applyHandleStatus(result.handle_status);
+        await finishTransaction({
+          purchase,
+          isConsumable: true,
+        });
+      }
+    },
+    onPurchaseError: (error) => {
+      if (error.code !== "user-cancelled") {
+        setError("Purchase failed: " + error.message);
+        setIsProcessingPurchase(null);
+      }
+    },
+  }) : {
+    requestPurchase: async () => {
+      const result = await claimHandleGoogleIAP(
+        handle,
+        script_pubkey,
+        "test_valid_purchase",
+      );
+      if (result.error) {
+        setError(result.error);
+      } else {
+        await applyHandleStatus(result.handle_status);
+      }
+      return null;
+    },
+    finishTransaction: async ()=> {}
+  } as Pick<ReturnType<UseIAPHook>, 'requestPurchase' | 'finishTransaction'>;
 
   useEffect(() => {
     fetchAndUpdateCert();
   }, [handle]);
+
+  useEffect(() => {
+    if (isProcessingPurchase === true) {
+      const interval = setInterval(() => {
+        fetchAndUpdateCert();
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [isProcessingPurchase]);
 
   const fetchAndUpdateCert = async () => {
     const status = await fetchHandleStatus(handle);
@@ -141,7 +155,7 @@ export default function ShowHandle({ route, navigation }: Props) {
           setRemovableHandleCert(true);
           setError("Handle is currently reserved.");
         } else {
-          setIsProcessingPurchase(false);
+          setIsProcessingPurchase(true);
         }
         break;
       case "taken":
@@ -199,10 +213,6 @@ export default function ShowHandle({ route, navigation }: Props) {
     }
 
     try {
-      await fetchProducts({
-        skus: [result.product_id],
-        type: "in-app",
-      });
       await requestPurchase({
         request: {
           ios: { sku: result.product_id },
@@ -214,7 +224,7 @@ export default function ShowHandle({ route, navigation }: Props) {
       setIsProcessingPurchase(false);
       setError(
         "Failed purchase: " +
-          (error instanceof Error ? error.message : String(error)),
+        (error instanceof Error ? error.message : String(error)),
       );
     }
   };
