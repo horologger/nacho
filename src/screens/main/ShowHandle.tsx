@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -42,7 +42,7 @@ if (Platform.OS !== "web") {
   try {
     useIAP = require("expo-iap").useIAP;
   } catch (error) {
-    console.log("expo-iap not available (likely Expo Go)");
+    console.error("expo-iap not available");
   }
 }
 
@@ -51,8 +51,10 @@ export default function ShowHandle({ route, navigation }: Props) {
   const { xpub, handles, removeHandle, setHandleCertData } = useStore();
   const [error, setError] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
-  const [badHandleStatus, setBadHandleStatus] = useState(false);
-  const [isProcessingPurchase, setIsProcessingPurchase] = useState(false);
+  const [removableHandleCert, setRemovableHandleCert] = useState(false);
+  const [isProcessingPurchase, setIsProcessingPurchase] = useState<
+    boolean | null
+  >(null);
 
   const handleData = handles?.[handle];
 
@@ -63,50 +65,69 @@ export default function ShowHandle({ route, navigation }: Props) {
   const pubkey = pubFromPath(xpub, handleData.path);
   const script_pubkey = p2trScriptFromPub(pubkey);
 
-  const { requestPurchase, fetchProducts } = (() => {
-    if (!useIAP) {
-      return {
-        requestPurchase: async () => {
-          setTimeout(() => {
-            setError("IAP is mobile only");
-          }, 1000);
-        },
-        fetchProducts: async () => {
-          return [];
-        },
-      };
-    }
+  const claimParamsRef = useRef({ handle, script_pubkey });
 
-    return useIAP({
-      onPurchaseSuccess: async (purchase) => {
-        setIsProcessingPurchase(false);
-        if (!purchase.purchaseToken) {
-          setError("No purchase token received");
-          return;
-        }
-        const result = await claimHandleGoogleIAP(
-          handle,
-          script_pubkey,
-          purchase.purchaseToken,
-        );
-        if (result.error) {
-          setError(result.error);
-        } else {
-          await applyHandleStatus(result.handle_status);
-        }
-      },
-      onPurchaseError: (error) => {
-        setIsProcessingPurchase(false);
-        if (error.code !== "user-cancelled") {
-          setError("Purchase failed: " + error.message);
-        }
-      },
-    });
-  })();
+  useEffect(() => {
+    claimParamsRef.current = { handle, script_pubkey };
+  }, [handle, script_pubkey]);
+
+  const { requestPurchase, finishTransaction } = useIAP ? useIAP({
+    onPurchaseSuccess: async (purchase) => {
+      if (!purchase.purchaseToken) {
+        setError("No purchase token received");
+        return;
+      }
+      const { handle, script_pubkey } = claimParamsRef.current;
+      const result = await claimHandleGoogleIAP(
+        handle,
+        script_pubkey,
+        purchase.purchaseToken,
+      );
+      if (result.error) {
+        setError(result.error);
+      } else {
+        await applyHandleStatus(result.handle_status);
+        await finishTransaction({
+          purchase,
+          isConsumable: true,
+        });
+      }
+    },
+    onPurchaseError: (error) => {
+      if (error.code !== "user-cancelled") {
+        setError("Purchase failed: " + error.message);
+        setIsProcessingPurchase(null);
+      }
+    },
+  }) : {
+    requestPurchase: async () => {
+      const result = await claimHandleGoogleIAP(
+        handle,
+        script_pubkey,
+        "test_valid_purchase",
+      );
+      if (result.error) {
+        setError(result.error);
+      } else {
+        await applyHandleStatus(result.handle_status);
+      }
+      return null;
+    },
+    finishTransaction: async ()=> {}
+  } as Pick<ReturnType<UseIAPHook>, 'requestPurchase' | 'finishTransaction'>;
 
   useEffect(() => {
     fetchAndUpdateCert();
   }, [handle]);
+
+  useEffect(() => {
+    if (isProcessingPurchase === true) {
+      const interval = setInterval(() => {
+        fetchAndUpdateCert();
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [isProcessingPurchase]);
 
   const fetchAndUpdateCert = async () => {
     const status = await fetchHandleStatus(handle);
@@ -114,14 +135,27 @@ export default function ShowHandle({ route, navigation }: Props) {
   };
 
   const applyHandleStatus = async (status: HandleStatus) => {
+    setError(null);
+    setIsProcessingPurchase(null);
+    setRemovableHandleCert(false);
     switch (status.status) {
+      case "available":
+        setRemovableHandleCert(true);
+        setIsProcessingPurchase(false);
+        break;
+      case "unknown":
+        setRemovableHandleCert(true);
+        break;
       case "invalid":
-        setBadHandleStatus(true);
+        setRemovableHandleCert(true);
         setError("Handle is invalid.");
         break;
       case "pending_payment":
         if (status.script_pubkey !== script_pubkey) {
+          setRemovableHandleCert(true);
           setError("Handle is currently reserved.");
+        } else {
+          setIsProcessingPurchase(true);
         }
         break;
       case "taken":
@@ -132,12 +166,13 @@ export default function ShowHandle({ route, navigation }: Props) {
               await setHandleCertData(handle, certData);
             }
           } else {
-            setBadHandleStatus(true);
+            setRemovableHandleCert(true);
             setError(
               "Handle certificate found but script_pubkey doesn't match. This handle may belong to a different key.",
             );
           }
         }
+        break;
     }
   };
 
@@ -178,10 +213,6 @@ export default function ShowHandle({ route, navigation }: Props) {
     }
 
     try {
-      await fetchProducts({
-        skus: [result.product_id],
-        type: "in-app",
-      });
       await requestPurchase({
         request: {
           ios: { sku: result.product_id },
@@ -190,12 +221,11 @@ export default function ShowHandle({ route, navigation }: Props) {
         type: "in-app",
       });
     } catch (error) {
+      setIsProcessingPurchase(false);
       setError(
         "Failed purchase: " +
-          (error instanceof Error ? error.message : String(error)),
+        (error instanceof Error ? error.message : String(error)),
       );
-    } finally {
-      setIsProcessingPurchase(false);
     }
   };
 
@@ -253,6 +283,12 @@ export default function ShowHandle({ route, navigation }: Props) {
                 onPress={handleDownloadCertificate}
                 type="secondary"
               />
+            ) : isProcessingPurchase === null ? (
+              <Button
+                text="Download Request"
+                onPress={handleDownloadRequest}
+                type="main"
+              />
             ) : (
               <>
                 <Button
@@ -268,7 +304,7 @@ export default function ShowHandle({ route, navigation }: Props) {
                 />
               </>
             )}
-            {(!handleData.cert || badHandleStatus) && (
+            {removableHandleCert && (
               <Button
                 text="Remove Handle"
                 onPress={() => setShowRemoveConfirm(true)}
