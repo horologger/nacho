@@ -2,7 +2,7 @@
   "expo": {
     "name": "nacho",
     "slug": "nacho",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.impervious.nacho",
-      "buildNumber": "2",
+      "buildNumber": "5",
       "config": {
         "usesNonExemptEncryption": false
       }
@@ -22,7 +22,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.impervious.nacho",
-      "versionCode": 10,
+      "versionCode": 11,
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.SYSTEM_ALERT_WINDOW"
