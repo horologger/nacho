@@ -187,7 +187,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     let maxIndex = -1;
 
     for (const handleData of Object.values(handles)) {
-      const match = handleData.path.match(/^m\/35053\/0\/0\/(\d+)$/);
+      const match = handleData.path.match(/^m\/86\/1\/0\/(\d+)$/);
       if (match) {
         const index = parseInt(match[1], 10);
         if (index > maxIndex) {
@@ -197,7 +197,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const nextIndex = maxIndex + 1;
-    const path = `m/35053/0/0/${nextIndex}`;
+    const path = `m/86/1/0/${nextIndex}`;
 
     await saveKeystore({
       ...handles,
