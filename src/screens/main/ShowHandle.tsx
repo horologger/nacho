@@ -5,7 +5,7 @@ import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { HandlesStackParamList } from "@/Navigation";
 import { useStore } from "@/Store";
-import { pubFromPath, p2trScriptFromPub } from "@/keys";
+import { p2trScriptFromPub, p2trAddressFromPub } from "@/keys";
 import { buildCert } from "@/cert";
 import { save } from "@/file";
 import { Layout } from "@/ui/Layout";
@@ -73,7 +73,7 @@ export default function ShowHandle({ route, navigation }: Props) {
     return null;
   }
 
-  const pubkey = pubFromPath(xpub, handleData.path);
+  const pubkey = handleData.pubkey;
   const script_pubkey = p2trScriptFromPub(pubkey);
 
   const { requestPurchase, finishTransaction } =
@@ -379,6 +379,20 @@ export default function ShowHandle({ route, navigation }: Props) {
         <Text style={styles.label}>Public Key</Text>
         <Text style={styles.value} numberOfLines={6} textBreakStrategy="simple">
           {pubkey}
+        </Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.label}>Script Pubkey</Text>
+        <Text style={styles.value} numberOfLines={6} textBreakStrategy="simple" selectable>
+          {script_pubkey}
+        </Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.label}>Taproot Address</Text>
+        <Text style={styles.value} numberOfLines={6} textBreakStrategy="simple" selectable>
+          {p2trAddressFromPub(pubkey, network === "mainnet")}
         </Text>
       </View>
 

@@ -9,7 +9,7 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { CertData, isCertData, areCertDataEqual } from "@/cert";
-import { xpubFromXprv } from "@/keys";
+import { xpubFromXprv, pubFromXprv } from "@/keys";
 
 const getSecureStorage = () => {
   if (Platform.OS === "web") {
@@ -59,6 +59,7 @@ const secureStorage = getSecureStorage();
 
 export type HandleData = {
   path: string;
+  pubkey: string;
   cert?: CertData;
 };
 
@@ -69,8 +70,11 @@ function isHandleData(obj: unknown): obj is HandleData {
   const handle = obj as Record<string, unknown>;
   if (
     typeof handle.path !== "string" ||
-    !/^m(\/(?:0|[1-9]\d*))+$/.test(handle.path)
+    !/^m(\/(?:'?\d+))(\/(?:'?\d+))*$/.test(handle.path)
   ) {
+    return false;
+  }
+  if (typeof handle.pubkey !== "string" || !/^[0-9a-f]{64}$/.test(handle.pubkey)) {
     return false;
   }
   if (handle.cert !== undefined && !isCertData(handle.cert)) {
@@ -86,7 +90,7 @@ function isNetwork(s: unknown): s is Network {
 }
 
 function getDerivationPrefix(network: Network): string {
-  return network === "mainnet" ? "m/35053/0/0/" : "m/35053/1/0/";
+  return network === "mainnet" ? "m/86'/0'/9'/0/" : "m/86'/1'/9'/0/";
 }
 
 export type HandlesMap = Record<string, HandleData>;
@@ -236,12 +240,19 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
 
     const path = prefix + (maxIndex + 1).toString();
 
+    const xprv = await secureStorage.getXprv();
+    if (!xprv) {
+      throw new Error("Cannot create handle without private key");
+    }
+    const pubkey = pubFromXprv(xprv, path);
+
     await saveKeystore({
       ...handles,
       [network]: {
         ...handlesMap,
         [handle]: {
           path,
+          pubkey,
         },
       },
     });

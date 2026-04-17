@@ -20,6 +20,11 @@ export default function ({ navigation }: Props) {
             type="main"
           />
           <Button
+            text="Restore from seed phrase"
+            onPress={() => navigation.navigate("RestoreMnemonic")}
+            type="secondary"
+          />
+          <Button
             text="Restore existing keystore"
             onPress={() => navigation.navigate("ImportKeystore")}
             type="secondary"

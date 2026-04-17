@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
@@ -140,6 +141,14 @@ export default function ({ navigation }: Props) {
                 </View>
               ))}
             </View>
+            <TextInput
+              style={styles.mnemonicText}
+              value={mnemonic}
+              editable={false}
+              multiline
+              selectTextOnFocus
+              selectionColor="#FF7B00"
+            />
           </View>
         </>
       )}
@@ -206,5 +215,14 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     color: "#FFFFFF",
     flex: 1,
+  },
+  mnemonicText: {
+    backgroundColor: "#1A1A1A",
+    borderRadius: 8,
+    padding: 16,
+    fontSize: 16,
+    lineHeight: 26,
+    color: "#FFFFFF",
+    textAlignVertical: "top",
   },
 });

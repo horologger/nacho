@@ -7,6 +7,7 @@ import OnboardingHome from "./screens/onboarding/Home";
 import ShowMnemonic from "./screens/onboarding/ShowMnemonic";
 import ImportKeystore from "./screens/onboarding/ImportKeystore";
 import EnterMnemonic from "./screens/onboarding/EnterMnemonic";
+import RestoreMnemonic from "./screens/onboarding/RestoreMnemonic";
 import ListHandles from "./screens/main/ListHandles";
 import ShowHandle from "./screens/main/ShowHandle";
 import AddHandle from "./screens/main/AddHandle";
@@ -25,6 +26,7 @@ export type OnboardingStackParamList = {
   ShowMnemonic: undefined;
   ImportKeystore: undefined;
   EnterMnemonic: { xpub: string; handles?: Handles };
+  RestoreMnemonic: undefined;
 };
 
 const OnboardingStack = createNativeStackNavigator<OnboardingStackParamList>();
@@ -79,6 +81,11 @@ function OnboardingNavigator() {
         component={EnterMnemonic}
         options={{ title: "Seed Phrase" }}
       />
+      <OnboardingStack.Screen
+        name="RestoreMnemonic"
+        component={RestoreMnemonic}
+        options={{ title: "Seed Phrase" }}
+      />
     </OnboardingStack.Navigator>
   );
 }
@@ -116,7 +123,7 @@ function MainNavigator() {
           title: "Handles",
           headerRight: () => networkSwitcher(navigation, route.params.network),
         })}
-        initialParams={{ network: "testnet4" }}
+        initialParams={{ network: "mainnet" }}
         getId={({ params }) => params.network}
       />
       <HandlesStack.Screen

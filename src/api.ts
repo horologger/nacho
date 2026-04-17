@@ -7,12 +7,31 @@ function getApiBaseUrl(network: Network): string {
     : "https://testnet.atbitcoin.com/api";
 }
 
+async function apiFetch(url: string, init: RequestInit): Promise<Response> {
+  const method = init.method ?? "GET";
+  const requestBody = JSON.parse(init.body as string);
+  console.log(`[API →] ${method} ${url}`, requestBody);
+
+  const response = await fetch(url, init);
+
+  let responseBody: unknown;
+  const clone = response.clone();
+  try {
+    responseBody = await clone.json();
+  } catch {
+    responseBody = await clone.text();
+  }
+  console.log(`[API ←] ${response.status} ${url}`, responseBody);
+
+  return response;
+}
+
 export async function fetchProposedHandles(
   network: Network,
   query: string,
 ): Promise<string[]> {
   try {
-    const response = await fetch(`${getApiBaseUrl(network)}/proposed`, {
+    const response = await apiFetch(`${getApiBaseUrl(network)}/proposed`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -94,7 +113,7 @@ export async function fetchHandlesStatuses(
   handles: string[],
 ): Promise<HandleStatus[]> {
   try {
-    const response = await fetch(`${getApiBaseUrl(network)}/spaces/status`, {
+    const response = await apiFetch(`${getApiBaseUrl(network)}/spaces/status`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -144,7 +163,7 @@ export async function reserveHandle(
   | { error: string }
 > {
   try {
-    const response = await fetch(`${getApiBaseUrl(network)}/reserve`, {
+    const response = await apiFetch(`${getApiBaseUrl(network)}/reserve`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -187,7 +206,7 @@ export async function claimHandleIAP(
   error?: string;
 }> {
   try {
-    const response = await fetch(`${getApiBaseUrl(network)}/claim`, {
+    const response = await apiFetch(`${getApiBaseUrl(network)}/claim`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
