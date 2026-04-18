@@ -3,6 +3,7 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
+    "start:public": "expo start --host lan --port 8081",
     "doctor": "expo-doctor",
     "pretty": "prettier -w .",
     "android": "expo run:android",

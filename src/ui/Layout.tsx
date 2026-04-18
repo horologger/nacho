@@ -3,6 +3,9 @@ import { View, StyleSheet } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+/** Extra space beyond safe-area bottom (mobile browser toolbars, in-app overlays). */
+const BOTTOM_UI_CLEARANCE = 48;
+
 interface LayoutProps {
   children: ReactNode;
   footer?: ReactNode;
@@ -17,11 +20,12 @@ export function Layout({
   scrollable = true,
 }: LayoutProps) {
   const insets = useSafeAreaInsets();
+  const bottomPad = insets.bottom + BOTTOM_UI_CLEARANCE;
 
   const content = scrollable ? (
     <KeyboardAwareScrollView
       style={styles.scrollView}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPad }]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       enableOnAndroid={true}
@@ -29,7 +33,7 @@ export function Layout({
       {children}
     </KeyboardAwareScrollView>
   ) : (
-    <View style={styles.content}>{children}</View>
+    <View style={[styles.content, { paddingBottom: bottomPad }]}>{children}</View>
   );
 
   return (
@@ -37,7 +41,7 @@ export function Layout({
       {overlay && <View style={styles.overlay} />}
       {content}
       {footer && (
-        <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
+        <View style={[styles.footer, { paddingBottom: bottomPad }]}>
           {footer}
         </View>
       )}

@@ -1,19 +1,16 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
+import { View, Text, TextInput, StyleSheet, Alert } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { generateMnemonic, xpubFromMnemonic } from "@/keys";
 import { OnboardingStackParamList } from "@/Navigation";
+import { savePlainText } from "@/file";
 import { Button } from "@/ui/Button";
 import { Header } from "@/ui/Header";
 import { Layout } from "@/ui/Layout";
 import { SvgXml } from "react-native-svg";
+
+const SEED_PHRASE_FILENAME = "bitcoin2026.spaces.workshop.txt";
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, "ShowMnemonic">;
 
@@ -149,6 +146,27 @@ export default function ({ navigation }: Props) {
               selectTextOnFocus
               selectionColor="#FF7B00"
             />
+            <View style={styles.seedPhraseActions}>
+              <Button
+                text="Copy to Clipboard"
+                onPress={() => void Clipboard.setStringAsync(mnemonic)}
+                type="secondary"
+              />
+              <Button
+                text="Download Seed Phrase"
+                onPress={async () => {
+                  try {
+                    await savePlainText(SEED_PHRASE_FILENAME, mnemonic);
+                  } catch (e) {
+                    Alert.alert(
+                      "Download failed",
+                      e instanceof Error ? e.message : "Could not save file",
+                    );
+                  }
+                }}
+                type="secondary"
+              />
+            </View>
           </View>
         </>
       )}
@@ -224,5 +242,9 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     color: "#FFFFFF",
     textAlignVertical: "top",
+  },
+  seedPhraseActions: {
+    marginTop: 16,
+    gap: 0,
   },
 });

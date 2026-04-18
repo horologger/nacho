@@ -9,6 +9,8 @@ import { Header } from "@/ui/Header";
 import { Button } from "@/ui/Button";
 import { Message } from "@/ui/Message";
 import {
+  broadcastNostrEventToRelay,
+  isNostrEvent,
   isNostrEventData,
   NostrEventData,
   signNostrEvent,
@@ -29,9 +31,15 @@ export default function SignNostrEvent({ navigation, route }: Props) {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSigningInProgress, setIsSigningInProgress] = useState(false);
   const [signedEventJson, setSignedEventJson] = useState<string | null>(null);
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [relayNotice, setRelayNotice] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const useHelloWorldEvent = () => {
     setValidationError(null);
+    setRelayNotice(null);
     setSignedEventJson(null);
     setNostrEvent({
       created_at: Math.floor(Date.now() / 1000),
@@ -44,6 +52,7 @@ export default function SignNostrEvent({ navigation, route }: Props) {
 
   const selectFile = async () => {
     setValidationError(null);
+    setRelayNotice(null);
     setSignedEventJson(null);
     setNostrEvent(null);
     setSelectedFileName(null);
@@ -112,8 +121,27 @@ export default function SignNostrEvent({ navigation, route }: Props) {
     }
   };
 
-  const renderFileInfo = () => {
-    if (!selectedFileName) return null;
+  const renderSourceDetails = () => {
+    if (!selectedFileName || !nostrEvent) return null;
+
+    if (selectedFileName === HELLO_WORLD_SOURCE_FILENAME) {
+      return (
+        <View style={styles.fileInfoContainer}>
+          <Text style={styles.fileInfoTitle}>Message</Text>
+          <TextInput
+            value={nostrEvent.content}
+            onChangeText={(content) =>
+              setNostrEvent((prev) => (prev ? { ...prev, content } : null))
+            }
+            multiline
+            style={styles.messageInput}
+            placeholder="Hello World!"
+            placeholderTextColor="#888888"
+            textAlignVertical="top"
+          />
+        </View>
+      );
+    }
 
     return (
       <View style={styles.fileInfoContainer}>
@@ -126,6 +154,47 @@ export default function SignNostrEvent({ navigation, route }: Props) {
   const copySignedJson = async () => {
     if (!signedEventJson) return;
     await Clipboard.setStringAsync(signedEventJson);
+  };
+
+  const broadcastToPrimal = async () => {
+    if (!signedEventJson) return;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(signedEventJson);
+    } catch {
+      setRelayNotice({
+        type: "error",
+        text: "Could not parse signed event JSON.",
+      });
+      return;
+    }
+    if (!isNostrEvent(parsed)) {
+      setRelayNotice({
+        type: "error",
+        text: "Signed payload is not a valid Nostr event.",
+      });
+      return;
+    }
+
+    try {
+      setIsBroadcasting(true);
+      setRelayNotice(null);
+      await broadcastNostrEventToRelay(parsed);
+      setRelayNotice({
+        type: "success",
+        text: "Event sent to Primal relay (wss://relay.primal.net/).",
+      });
+    } catch (error) {
+      setRelayNotice({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to broadcast to Primal",
+      });
+    } finally {
+      setIsBroadcasting(false);
+    }
   };
 
   const footerButtonDisabled =
@@ -157,10 +226,10 @@ export default function SignNostrEvent({ navigation, route }: Props) {
         <Button
           text="Use Hello World Event"
           onPress={useHelloWorldEvent}
-          type="secondary"
+          type="main"
         />
 
-        {renderFileInfo()}
+        {renderSourceDetails()}
       </View>
 
       {validationError !== null && (
@@ -185,11 +254,33 @@ export default function SignNostrEvent({ navigation, route }: Props) {
             onPress={copySignedJson}
             type="secondary"
           />
+          <View style={styles.broadcastButtonWrap}>
+            <Button
+              text={
+                isBroadcasting
+                  ? "Broadcasting..."
+                  : "Broadcast to Primal"
+              }
+              onPress={broadcastToPrimal}
+              type="main"
+              disabled={isBroadcasting}
+            />
+          </View>
+          {relayNotice !== null && (
+            <Message
+              message={relayNotice.text}
+              type={relayNotice.type === "success" ? "success" : "error"}
+            />
+          )}
         </View>
       )}
       {nostrEvent && !validationError && signedEventJson === null && (
         <Message
-          message="Nostr event file validated successfully. Ready to sign."
+          message={
+            selectedFileName === HELLO_WORLD_SOURCE_FILENAME
+              ? "Message ready to sign."
+              : "Nostr event file validated successfully. Ready to sign."
+          }
           type="success"
         />
       )}
@@ -219,6 +310,19 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     color: "#FFFFFF",
   },
+  messageInput: {
+    minHeight: 100,
+    maxHeight: 220,
+    backgroundColor: "#0D0D0D",
+    color: "#FFFFFF",
+    padding: 12,
+    borderRadius: 8,
+    fontSize: 16,
+    lineHeight: 22,
+    // @ts-ignore - web word wrap
+    wordBreak: "break-word",
+    overflowWrap: "break-word",
+  } as any,
   signedOutputSection: {
     marginTop: 8,
   },
@@ -232,6 +336,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#CCCCCC",
     marginBottom: 10,
+  },
+  broadcastButtonWrap: {
+    marginTop: 8,
   },
   signedJsonInput: {
     minHeight: 200,

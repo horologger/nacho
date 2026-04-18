@@ -16,6 +16,8 @@ import {
   p2trScriptFromPub,
   p2trAddressFromPub,
   npubFromXOnlyPubHex,
+  nsecFromPrvHex,
+  prvFromPath,
 } from "@/keys";
 import { buildCert } from "@/cert";
 import { save } from "@/file";
@@ -69,7 +71,8 @@ const iap = (() => {
 
 export default function ShowHandle({ route, navigation }: Props) {
   const { network, handle } = route.params;
-  const { xpub, handles, removeHandle, setHandleCertData } = useStore();
+  const { xpub, handles, removeHandle, setHandleCertData, getXprv } =
+    useStore();
   const [error, setError] = useState<string | null>(null);
   const [handleStatusString, setHandleStatusString] = useState<
     HandleStatus["status"] | null
@@ -87,6 +90,12 @@ export default function ShowHandle({ route, navigation }: Props) {
   const sendRequestFlashTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [nostrKeyView, setNostrKeyView] = useState<"pubkey" | "nsec">(
+    "pubkey",
+  );
+  const [cachedNsec, setCachedNsec] = useState<string | null>(null);
+  const [nostrNsecLoading, setNostrNsecLoading] = useState(false);
+
   const handleData = handles?.[network]?.[handle];
 
   if (!xpub || !handleData) {
@@ -98,6 +107,34 @@ export default function ShowHandle({ route, navigation }: Props) {
   const script_pubkey = p2trScriptFromPub(pubkey);
   const nostrNpub = npubFromXOnlyPubHex(pubkey);
   const primalProfileUrl = `https://primal.net/p/${nostrNpub}`;
+
+  const handleNostrLabelPress = async () => {
+    if (nostrKeyView === "nsec") {
+      setNostrKeyView("pubkey");
+      return;
+    }
+
+    setNostrKeyView("nsec");
+
+    if (cachedNsec !== null) return;
+
+    try {
+      setNostrNsecLoading(true);
+      const xprv = await getXprv();
+      if (!xprv) {
+        throw new Error("No extended private key available");
+      }
+      const prvHex = prvFromPath(xprv, handleData.path);
+      setCachedNsec(nsecFromPrvHex(prvHex));
+    } catch (e) {
+      setNostrKeyView("pubkey");
+      setError(
+        e instanceof Error ? e.message : "Could not load Nostr secret key",
+      );
+    } finally {
+      setNostrNsecLoading(false);
+    }
+  };
 
   const { requestPurchase, finishTransaction } =
     iap && network === "mainnet"
@@ -534,17 +571,41 @@ export default function ShowHandle({ route, navigation }: Props) {
 
       <View style={styles.section}>
         <View style={styles.labelRow}>
-          <Text style={[styles.label, styles.labelInRow]}>Nostr Pubkey</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              nostrKeyView === "pubkey"
+                ? "Show Nostr secret key"
+                : "Show Nostr public key"
+            }
+            onPress={() => void handleNostrLabelPress()}
+            android_ripple={null}
+            hitSlop={8}
+            style={styles.labelPressable}
+          >
+            <Text style={[styles.label, styles.labelInRow]}>
+              {nostrKeyView === "pubkey" ? "Nostr Pubkey" : "Nostr NSEC"}
+            </Text>
+          </Pressable>
           <Pressable
             accessibilityRole="link"
             accessibilityLabel="Open profile on Primal"
+            accessibilityState={{ disabled: nostrKeyView === "nsec" }}
             onPress={() => void Linking.openURL(primalProfileUrl)}
+            disabled={nostrKeyView === "nsec"}
+            style={
+              nostrKeyView === "nsec" ? styles.primalLinkHidden : undefined
+            }
           >
             <Text style={styles.inlineLink}>On Primal</Text>
           </Pressable>
         </View>
         <Text style={styles.value} numberOfLines={6} textBreakStrategy="simple" selectable>
-          {nostrNpub}
+          {nostrKeyView === "pubkey"
+            ? nostrNpub
+            : nostrNsecLoading
+              ? "Loading…"
+              : (cachedNsec ?? "")}
         </Text>
       </View>
 
@@ -596,6 +657,13 @@ const styles = StyleSheet.create({
   labelInRow: {
     marginBottom: 0,
     flexShrink: 1,
+  },
+  labelPressable: {
+    alignSelf: "flex-start",
+    flexShrink: 1,
+  },
+  primalLinkHidden: {
+    opacity: 0,
   },
   inlineLink: {
     fontSize: 16,

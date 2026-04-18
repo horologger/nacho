@@ -186,7 +186,7 @@ export default function ListHandles({ route, navigation }: Props) {
         keyExtractor={(item) => item[0]}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No handles found</Text>
+            <Text style={styles.emptyText}>Handle is taken</Text>
           </View>
         }
         style={styles.handlesList}

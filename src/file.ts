@@ -3,6 +3,36 @@ import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as DocumentPicker from "expo-document-picker";
 
+export async function savePlainText(
+  fileName: string,
+  text: string,
+): Promise<void> {
+  if (Platform.OS === "web") {
+    const blob = new Blob([text], {
+      type: "text/plain;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  } else {
+    const file = new File(Paths.cache, fileName);
+    if (file.exists) {
+      await file.delete();
+    }
+    // @ts-ignore - workaround for expo-file-system bug where options param is required but breaks functionality
+    await file.write(text);
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(file.uri, {
+        mimeType: "text/plain",
+        dialogTitle: "Save seed phrase file",
+      });
+    }
+  }
+}
+
 export async function save(fileName: string, data: unknown): Promise<void> {
   const content = JSON.stringify(data, null, 2);
   if (Platform.OS === "web") {

@@ -94,3 +94,69 @@ export async function signNostrEvent(
     sig,
   };
 }
+
+const PRIMAL_RELAY_URL = "wss://relay.primal.net/";
+
+/** Publish a signed event to a Nostr relay (NIP-01 `EVENT`, NIP-20 `OK`). */
+export function broadcastNostrEventToRelay(
+  event: NostrEvent,
+  relayUrl: string = PRIMAL_RELAY_URL,
+  timeoutMs = 20000,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const ws = new WebSocket(relayUrl);
+
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        ws.close();
+      } catch {
+        /* ignore */
+      }
+      fn();
+    };
+
+    const timer = setTimeout(() => {
+      finish(() => reject(new Error("Relay did not respond in time")));
+    }, timeoutMs);
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify(["EVENT", event]));
+    };
+
+    ws.onmessage = (e) => {
+      try {
+        const raw = typeof e.data === "string" ? e.data : String(e.data);
+        const msg = JSON.parse(raw) as unknown;
+        if (!Array.isArray(msg) || msg.length < 3) return;
+        if (msg[0] !== "OK" || msg[1] !== event.id) return;
+        const accepted = msg[2] === true;
+        const relayMsg = typeof msg[3] === "string" ? msg[3] : "";
+        if (accepted) {
+          finish(() => resolve());
+        } else {
+          finish(() =>
+            reject(
+              new Error(relayMsg.trim() || "Relay rejected the event"),
+            ),
+          );
+        }
+      } catch {
+        /* ignore non-JSON or unrelated frames */
+      }
+    };
+
+    ws.onerror = () => {
+      finish(() => reject(new Error("Could not connect to relay")));
+    };
+
+    ws.onclose = () => {
+      if (!settled) {
+        finish(() => reject(new Error("Connection closed before relay reply")));
+      }
+    };
+  });
+}

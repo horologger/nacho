@@ -165,6 +165,37 @@ export async function fetchHandleStatus(
   return { handle, status: "unknown" };
 }
 
+const CERT_REQUEST_FILE_EXISTS_RE =
+  /Certificate request file already exists/i;
+
+const FRIENDLY_CERT_REQUEST_CONFLICT =
+  "A certificate request for this handle is already on the server. " +
+  'Use Remove Handle, then add a different handle name and try sending your request again.';
+
+function friendlySendHandleAddError(raw: string, httpStatus: number): string {
+  const trimmed = raw.trim();
+  const matchesConflict = (msg: string) =>
+    CERT_REQUEST_FILE_EXISTS_RE.test(msg);
+
+  try {
+    const parsed = JSON.parse(trimmed) as { error?: unknown };
+    if (typeof parsed.error === "string") {
+      if (matchesConflict(parsed.error)) {
+        return FRIENDLY_CERT_REQUEST_CONFLICT;
+      }
+      return parsed.error;
+    }
+  } catch {
+    /* body is not JSON */
+  }
+
+  if (matchesConflict(trimmed)) {
+    return FRIENDLY_CERT_REQUEST_CONFLICT;
+  }
+
+  return trimmed || `HTTP ${httpStatus}`;
+}
+
 export async function sendHandleAddRequest(
   network: Network,
   handle: string,
@@ -188,7 +219,10 @@ export async function sendHandleAddRequest(
     );
     if (!response.ok) {
       const text = await response.text();
-      return { ok: false, error: text.trim() || `HTTP ${response.status}` };
+      return {
+        ok: false,
+        error: friendlySendHandleAddError(text, response.status),
+      };
     }
     return { ok: true };
   } catch (error) {

@@ -105,3 +105,12 @@ export function npubFromXOnlyPubHex(pubHex: string): string {
   }
   return bech32.encodeFromBytes("npub", new Uint8Array(bytes));
 }
+
+/** NIP-19 `nsec` from 32-byte secp256k1 private key hex. */
+export function nsecFromPrvHex(prvHex: string): string {
+  const bytes = Buffer.from(prvHex, "hex");
+  if (bytes.length !== 32) {
+    throw new Error("Expected 32-byte private key hex");
+  }
+  return bech32.encodeFromBytes("nsec", new Uint8Array(bytes));
+}

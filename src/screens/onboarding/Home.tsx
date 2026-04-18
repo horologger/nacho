@@ -51,6 +51,11 @@ export default function ({ navigation }: Props) {
             <Text style={styles.orangeText}>Bitcoin </Text>
             <Text style={styles.whiteText}>Handle Keystore</Text>
           </View>
+          <View style={styles.bitcoin2026Row}>
+            <Text style={styles.orangeText}>Bitcoin</Text>
+            <Text style={styles.whiteText}>2026</Text>
+          </View>
+          <Text style={styles.dateLine}>April 27-29</Text>
         </View>
       </View>
     </Layout>
@@ -78,6 +83,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+  },
+  bitcoin2026Row: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 40,
+  },
+  dateLine: {
+    marginTop: 10,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    textAlign: "center",
   },
   orangeText: {
     fontSize: 20,
