@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TextInput, Platform } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { open } from "@/file";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { HandlesStackParamList } from "@/Navigation";
@@ -9,13 +10,14 @@ import { Button } from "@/ui/Button";
 import { Message } from "@/ui/Message";
 import {
   isNostrEventData,
-  NostrEvent,
   NostrEventData,
   signNostrEvent,
 } from "@/nostr";
 import { useStore } from "@/Store";
 import { prvFromPath } from "@/keys";
 import { save } from "@/file";
+
+const HELLO_WORLD_SOURCE_FILENAME = "hello_world_event.json";
 
 type Props = NativeStackScreenProps<HandlesStackParamList, "SignNostrEvent">;
 
@@ -26,9 +28,23 @@ export default function SignNostrEvent({ navigation, route }: Props) {
   const [nostrEvent, setNostrEvent] = useState<NostrEventData | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSigningInProgress, setIsSigningInProgress] = useState(false);
+  const [signedEventJson, setSignedEventJson] = useState<string | null>(null);
+
+  const useHelloWorldEvent = () => {
+    setValidationError(null);
+    setSignedEventJson(null);
+    setNostrEvent({
+      created_at: Math.floor(Date.now() / 1000),
+      kind: 1,
+      tags: [],
+      content: "Hello World!",
+    });
+    setSelectedFileName(HELLO_WORLD_SOURCE_FILENAME);
+  };
 
   const selectFile = async () => {
     setValidationError(null);
+    setSignedEventJson(null);
     setNostrEvent(null);
     setSelectedFileName(null);
 
@@ -74,6 +90,11 @@ export default function SignNostrEvent({ navigation, route }: Props) {
       const privateKey = prvFromPath(xprv, handleData.path);
       const signedEvent = await signNostrEvent(nostrEvent, privateKey);
 
+      if (selectedFileName === HELLO_WORLD_SOURCE_FILENAME) {
+        setSignedEventJson(JSON.stringify(signedEvent, null, 2));
+        return;
+      }
+
       const signedFileName = selectedFileName
         ? selectedFileName.replace(".json", "_signed.json")
         : "signed_nostr_event.json";
@@ -102,15 +123,27 @@ export default function SignNostrEvent({ navigation, route }: Props) {
     );
   };
 
+  const copySignedJson = async () => {
+    if (!signedEventJson) return;
+    await Clipboard.setStringAsync(signedEventJson);
+  };
+
+  const footerButtonDisabled =
+    !nostrEvent || isSigningInProgress || signedEventJson !== null;
+
   return (
     <Layout
       footer={
-        <Button
-          text={isSigningInProgress ? "Signing..." : "Sign Event"}
-          onPress={handleSignEvent}
-          type="main"
-          disabled={!nostrEvent || isSigningInProgress}
-        />
+        signedEventJson !== null ? (
+          <Button text="Done" onPress={() => navigation.goBack()} type="main" />
+        ) : (
+          <Button
+            text={isSigningInProgress ? "Signing..." : "Sign Event"}
+            onPress={handleSignEvent}
+            type="main"
+            disabled={footerButtonDisabled}
+          />
+        )
       }
     >
       <Header
@@ -121,6 +154,11 @@ export default function SignNostrEvent({ navigation, route }: Props) {
 
       <View style={styles.fileSelectionContainer}>
         <Button text="Select JSON File" onPress={selectFile} type="secondary" />
+        <Button
+          text="Use Hello World Event"
+          onPress={useHelloWorldEvent}
+          type="secondary"
+        />
 
         {renderFileInfo()}
       </View>
@@ -128,7 +166,28 @@ export default function SignNostrEvent({ navigation, route }: Props) {
       {validationError !== null && (
         <Message message={validationError} type="error" />
       )}
-      {nostrEvent && !validationError && (
+      {signedEventJson !== null && (
+        <View style={styles.signedOutputSection}>
+          <Text style={styles.signedOutputTitle}>Signed event</Text>
+          <Text style={styles.signedOutputHint}>
+            Select the text below or use Copy.
+          </Text>
+          <TextInput
+            value={signedEventJson}
+            multiline
+            editable={false}
+            selectTextOnFocus
+            style={styles.signedJsonInput}
+            textAlignVertical="top"
+          />
+          <Button
+            text="Copy to clipboard"
+            onPress={copySignedJson}
+            type="secondary"
+          />
+        </View>
+      )}
+      {nostrEvent && !validationError && signedEventJson === null && (
         <Message
           message="Nostr event file validated successfully. Ready to sign."
           type="success"
@@ -159,5 +218,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "400",
     color: "#FFFFFF",
+  },
+  signedOutputSection: {
+    marginTop: 8,
+  },
+  signedOutputTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FF7B00",
+    marginBottom: 6,
+  },
+  signedOutputHint: {
+    fontSize: 13,
+    color: "#CCCCCC",
+    marginBottom: 10,
+  },
+  signedJsonInput: {
+    minHeight: 200,
+    maxHeight: 360,
+    backgroundColor: "#1A1A1A",
+    color: "#FFFFFF",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    fontFamily: Platform.select({
+      ios: "Menlo",
+      android: "monospace",
+      default: "monospace",
+    }),
+    fontSize: 12,
   },
 });

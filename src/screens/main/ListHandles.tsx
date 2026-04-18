@@ -29,17 +29,20 @@ interface Props {
 
 export default function ListHandles({ route, navigation }: Props) {
   const { network } = route.params;
-  const { xpub, handles } = useStore();
+  const { handles, getXprv } = useStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [proposedHandles, setProposedHandles] = useState<string[]>([]);
+  const [proposedState, setProposedState] = useState<"available" | "taken">("available");
 
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (searchQuery) {
-        const results = await fetchProposedHandles(network, searchQuery);
-        setProposedHandles(results);
+        const result = await fetchProposedHandles(network, searchQuery);
+        setProposedHandles(result.handles);
+        setProposedState(result.state);
       } else {
         setProposedHandles([]);
+        setProposedState("available");
       }
     }, 300);
     return () => clearTimeout(timeoutId);
@@ -47,7 +50,14 @@ export default function ListHandles({ route, navigation }: Props) {
 
   const exportKeystore = async () => {
     try {
-      const keystore = { xpub, handles };
+      const xprv = await getXprv();
+      if (!xprv) {
+        throw new Error("Private key not available");
+      }
+      if (handles === null) {
+        throw new Error("No handles to export");
+      }
+      const keystore = { xprv, handles };
       const fileName = `keystore_${Date.now()}.json`;
       await save(fileName, keystore);
     } catch (error) {
@@ -110,17 +120,21 @@ export default function ListHandles({ route, navigation }: Props) {
   };
 
   const renderProposedHandle = ({ item }: { item: string }) => {
+    const isTaken = proposedState === "taken";
     return (
       <TouchableOpacity
         style={styles.proposedHandleItem}
         onPress={() =>
           navigation.navigate("AddHandle", { network, initialHandle: item })
         }
+        disabled={isTaken}
       >
         <View style={styles.handleContent}>
           <Text style={styles.handleName}>{renderHandleName(item)}</Text>
-          <View style={styles.availableBadge}>
-            <Text style={styles.availableText}>Available</Text>
+          <View style={[styles.availableBadge, isTaken && styles.takenBadge]}>
+            <Text style={styles.availableText}>
+              {isTaken ? "Taken" : "Available"}
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -242,6 +256,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
+  },
+  takenBadge: {
+    backgroundColor: "#EF4444",
   },
   availableText: {
     color: "#FFFFFF",

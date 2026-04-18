@@ -1,6 +1,6 @@
 import * as bip39 from "@scure/bip39";
 import { HDKey } from "@scure/bip32";
-import { bech32m } from "@scure/base";
+import { bech32, bech32m } from "@scure/base";
 import { Point } from "@noble/secp256k1";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { wordlist } from "@scure/bip39/wordlists/english";
@@ -95,4 +95,13 @@ export function p2trAddressFromPub(pub: string, mainnet: boolean): string {
   const outputKey = Buffer.from(taprootTweak(pub), "hex");
   const words = [1, ...bech32m.toWords(outputKey)];
   return bech32m.encode(hrp, words);
+}
+
+/** NIP-19 `npub` from 32-byte x-only secp256k1 pubkey hex (Taproot internal key). */
+export function npubFromXOnlyPubHex(pubHex: string): string {
+  const bytes = Buffer.from(pubHex, "hex");
+  if (bytes.length !== 32) {
+    throw new Error("Expected 32-byte x-only public key hex");
+  }
+  return bech32.encodeFromBytes("npub", new Uint8Array(bytes));
 }

@@ -1,11 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { View, Text, StyleSheet, Platform } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Platform,
+  Linking,
+  Pressable,
+} from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { HandlesStackParamList } from "@/Navigation";
 import { useStore } from "@/Store";
-import { p2trScriptFromPub, p2trAddressFromPub } from "@/keys";
+import {
+  p2trScriptFromPub,
+  p2trAddressFromPub,
+  npubFromXOnlyPubHex,
+} from "@/keys";
 import { buildCert } from "@/cert";
 import { save } from "@/file";
 import { Layout } from "@/ui/Layout";
@@ -14,11 +25,13 @@ import { Button } from "@/ui/Button";
 import { Message } from "@/ui/Message";
 import {
   fetchHandleStatus,
+  sendHandleAddRequest,
+  fetchHandleCertificateJson,
   reserveHandle,
   claimHandleIAP,
   HandleStatus,
 } from "@/api";
-import { extractCertData } from "@/cert";
+import { Cert, extractCertData, isCert } from "@/cert";
 
 type ShowHandleRouteProp = RouteProp<HandlesStackParamList, "ShowHandle">;
 type ShowHandleNavigationProp = NativeStackNavigationProp<
@@ -65,6 +78,14 @@ export default function ShowHandle({ route, navigation }: Props) {
     boolean | null
   >(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [isSendingRequest, setIsSendingRequest] = useState(false);
+  const [isReceivingCertificate, setIsReceivingCertificate] = useState(false);
+  const [sendRequestFlash, setSendRequestFlash] = useState<{
+    text: string;
+    type: "success" | "error";
+  } | null>(null);
+  const sendRequestFlashTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleData = handles?.[network]?.[handle];
 
@@ -75,6 +96,8 @@ export default function ShowHandle({ route, navigation }: Props) {
 
   const pubkey = handleData.pubkey;
   const script_pubkey = p2trScriptFromPub(pubkey);
+  const nostrNpub = npubFromXOnlyPubHex(pubkey);
+  const primalProfileUrl = `https://primal.net/p/${nostrNpub}`;
 
   const { requestPurchase, finishTransaction } =
     iap && network === "mainnet"
@@ -151,6 +174,14 @@ export default function ShowHandle({ route, navigation }: Props) {
     }
   }, [handleStatusString]);
 
+  useEffect(() => {
+    return () => {
+      if (sendRequestFlashTimeoutRef.current !== null) {
+        clearTimeout(sendRequestFlashTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const fetchAndUpdateHandleStatus = async () => {
     const status = await fetchHandleStatus(network, handle);
     await applyHandleStatus(status);
@@ -194,6 +225,67 @@ export default function ShowHandle({ route, navigation }: Props) {
       handle: handle,
       script_pubkey,
     });
+  };
+
+  const flashSendRequestMessage = (text: string, type: "success" | "error") => {
+    if (sendRequestFlashTimeoutRef.current !== null) {
+      clearTimeout(sendRequestFlashTimeoutRef.current);
+    }
+    setSendRequestFlash({ text, type });
+    sendRequestFlashTimeoutRef.current = setTimeout(() => {
+      setSendRequestFlash(null);
+      sendRequestFlashTimeoutRef.current = null;
+    }, 3500);
+  };
+
+  const handleSendRequest = async () => {
+    setError(null);
+    setIsSendingRequest(true);
+    const result = await sendHandleAddRequest(network, handle, script_pubkey);
+    setIsSendingRequest(false);
+    if (!result.ok) {
+      flashSendRequestMessage(result.error, "error");
+      return;
+    }
+    flashSendRequestMessage("Request sent successfully.", "success");
+    await fetchAndUpdateHandleStatus();
+  };
+
+  const handleReceiveCertificate = async () => {
+    setError(null);
+    setIsReceivingCertificate(true);
+    const result = await fetchHandleCertificateJson(network, handle);
+    setIsReceivingCertificate(false);
+    if (!result.ok) {
+      if (result.status === 404) {
+        flashSendRequestMessage(
+          "Certificate has not been generated yet.  Please try again later.",
+          "error",
+        );
+      } else {
+        setError(result.error);
+      }
+      return;
+    }
+    const data = result.data;
+    if (!isCert(data)) {
+      setError("Invalid certificate format");
+      return;
+    }
+    const cert: Cert = data;
+    const certData = extractCertData(cert);
+    const hd = handles?.[network]?.[cert.handle];
+    if (
+      hd === undefined ||
+      xpub === null ||
+      p2trScriptFromPub(hd.pubkey) !== cert.script_pubkey ||
+      cert.handle !== handle
+    ) {
+      setError("Certificate does not match this handle");
+      return;
+    }
+    await setHandleCertData(network, handle, certData);
+    await fetchAndUpdateHandleStatus();
   };
 
   const handleBuyHandle = async () => {
@@ -275,11 +367,31 @@ export default function ShowHandle({ route, navigation }: Props) {
 
                 if (handleStatusString === "unknown") {
                   return (
-                    <Button
-                      text="Download Request"
-                      onPress={handleDownloadRequest}
-                      type="main"
-                    />
+                    <>
+                      <Button
+                        text={
+                          isSendingRequest ? "Sending..." : "Send Request"
+                        }
+                        onPress={handleSendRequest}
+                        type="main"
+                        disabled={isSendingRequest || isReceivingCertificate}
+                      />
+                      <Button
+                        text={
+                          isReceivingCertificate
+                            ? "Loading..."
+                            : "Receive Certificate"
+                        }
+                        onPress={handleReceiveCertificate}
+                        type="main"
+                        disabled={isSendingRequest || isReceivingCertificate}
+                      />
+                      <Button
+                        text="Download Request"
+                        onPress={handleDownloadRequest}
+                        type="main"
+                      />
+                    </>
                   );
                 }
 
@@ -306,11 +418,31 @@ export default function ShowHandle({ route, navigation }: Props) {
                       />
                     )}
                     {handleStatusString === "available" && (
-                      <Button
-                        text="Download Request"
-                        onPress={handleDownloadRequest}
-                        type="secondary"
-                      />
+                      <>
+                        <Button
+                          text={
+                            isSendingRequest ? "Sending..." : "Send Request"
+                          }
+                          onPress={handleSendRequest}
+                          type="main"
+                          disabled={isSendingRequest || isReceivingCertificate}
+                        />
+                        <Button
+                          text={
+                            isReceivingCertificate
+                              ? "Loading..."
+                              : "Receive Certificate"
+                          }
+                          onPress={handleReceiveCertificate}
+                          type="main"
+                          disabled={isSendingRequest || isReceivingCertificate}
+                        />
+                        <Button
+                          text="Download Request"
+                          onPress={handleDownloadRequest}
+                          type="main"
+                        />
+                      </>
                     )}
                   </>
                 );
@@ -345,6 +477,10 @@ export default function ShowHandle({ route, navigation }: Props) {
           return <Text style={styles.handleSpacePart}>{handle}</Text>;
         })()}
       </Text>
+
+      {sendRequestFlash && (
+        <Message message={sendRequestFlash.text} type={sendRequestFlash.type} />
+      )}
 
       {(() => {
         if (error) {
@@ -396,6 +532,22 @@ export default function ShowHandle({ route, navigation }: Props) {
         </Text>
       </View>
 
+      <View style={styles.section}>
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, styles.labelInRow]}>Nostr Pubkey</Text>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="Open profile on Primal"
+            onPress={() => void Linking.openURL(primalProfileUrl)}
+          >
+            <Text style={styles.inlineLink}>On Primal</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.value} numberOfLines={6} textBreakStrategy="simple" selectable>
+          {nostrNpub}
+        </Text>
+      </View>
+
       {handleData.cert && (
         <View style={styles.section}>
           <Text style={styles.label}>Proof</Text>
@@ -433,6 +585,23 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     color: "#FFFFFF",
     marginBottom: 12,
+  },
+  labelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 12,
+  },
+  labelInRow: {
+    marginBottom: 0,
+    flexShrink: 1,
+  },
+  inlineLink: {
+    fontSize: 16,
+    fontWeight: "400",
+    color: "#FF7B00",
+    textDecorationLine: "underline",
   },
   value: {
     fontSize: 14,

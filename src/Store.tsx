@@ -70,7 +70,7 @@ function isHandleData(obj: unknown): obj is HandleData {
   const handle = obj as Record<string, unknown>;
   if (
     typeof handle.path !== "string" ||
-    !/^m(\/(?:'?\d+))(\/(?:'?\d+))*$/.test(handle.path)
+    !/^m(?:\/(?:\d+'|\d+))+$/.test(handle.path)
   ) {
     return false;
   }
@@ -101,18 +101,16 @@ export type Keystore = {
   handles: Handles;
 };
 
-export function isKeystore(obj: unknown): obj is Keystore {
+export type KeystoreBackup = {
+  xprv: string;
+  handles: Handles;
+};
+
+function isHandles(obj: unknown): obj is Handles {
   if (!obj || typeof obj !== "object") {
     return false;
   }
-  const keystore = obj as Record<string, unknown>;
-  if (typeof keystore.xpub !== "string") {
-    return false;
-  }
-  if (!keystore.handles || typeof keystore.handles !== "object") {
-    return false;
-  }
-  const handles = keystore.handles as Record<string, unknown>;
+  const handles = obj as Record<string, unknown>;
   for (const network of Object.keys(handles)) {
     if (!isNetwork(network)) {
       return false;
@@ -130,6 +128,34 @@ export function isKeystore(obj: unknown): obj is Keystore {
     }
   }
   return true;
+}
+
+export function isKeystore(obj: unknown): obj is Keystore {
+  if (!obj || typeof obj !== "object") {
+    return false;
+  }
+  const keystore = obj as Record<string, unknown>;
+  if (typeof keystore.xpub !== "string") {
+    return false;
+  }
+  return isHandles(keystore.handles);
+}
+
+export function isKeystoreBackup(obj: unknown): obj is KeystoreBackup {
+  if (!obj || typeof obj !== "object") {
+    return false;
+  }
+  const k = obj as Record<string, unknown>;
+  if (typeof k.xprv !== "string") {
+    return false;
+  }
+  return isHandles(k.handles);
+}
+
+export function isImportableKeystoreFile(
+  obj: unknown,
+): obj is Keystore | KeystoreBackup {
+  return isKeystore(obj) || isKeystoreBackup(obj);
 }
 
 type StoreContextType = {

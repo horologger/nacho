@@ -2,9 +2,12 @@ import { Cert, CertData, isCert, isCertData } from "@/cert";
 import { Network } from "@/Store";
 
 function getApiBaseUrl(network: Network): string {
-  return network === "testnet4"
-    ? "https://testnet.atbitcoin.com/api"
-    : "https://testnet.atbitcoin.com/api";
+  // return network === "testnet4"
+  //   ? "https://testnet.atbitcoin.com/api"
+  //   : "https://testnet.atbitcoin.com/api";
+    return network === "testnet4"
+    ? "https://testnet.spacesops.com/api"
+    : "https://spacesops.com/api";
 }
 
 async function apiFetch(url: string, init: RequestInit): Promise<Response> {
@@ -13,23 +16,32 @@ async function apiFetch(url: string, init: RequestInit): Promise<Response> {
   console.log(`[API →] ${method} ${url}`, requestBody);
 
   const response = await fetch(url, init);
+  const text = await response.text();
 
   let responseBody: unknown;
-  const clone = response.clone();
   try {
-    responseBody = await clone.json();
+    responseBody = JSON.parse(text);
   } catch {
-    responseBody = await clone.text();
+    responseBody = text;
   }
   console.log(`[API ←] ${response.status} ${url}`, responseBody);
 
-  return response;
+  return new Response(text, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
 }
+
+export type ProposedHandlesResult = {
+  state: "available" | "taken";
+  handles: string[];
+};
 
 export async function fetchProposedHandles(
   network: Network,
   query: string,
-): Promise<string[]> {
+): Promise<ProposedHandlesResult> {
   try {
     const response = await apiFetch(`${getApiBaseUrl(network)}/proposed`, {
       method: "POST",
@@ -44,10 +56,13 @@ export async function fetchProposedHandles(
     }
 
     const data = await response.json();
-    return data.available_subspaces || [];
+    return {
+      state: data.state === "taken" ? "taken" : "available",
+      handles: data.handles || data.available_subspaces || [],
+    };
   } catch (error) {
     console.error("Failed to fetch proposed handlers:", error);
-    return [];
+    return { state: "available", handles: [] };
   }
 }
 
@@ -148,6 +163,86 @@ export async function fetchHandleStatus(
     return status;
   }
   return { handle, status: "unknown" };
+}
+
+export async function sendHandleAddRequest(
+  network: Network,
+  handle: string,
+  script_pubkey: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parts = handle.split("@");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return { ok: false, error: "Invalid handle format" };
+  }
+  const space = parts[1];
+  try {
+    const response = await apiFetch(
+      `${getApiBaseUrl(network)}/subsd/spaces/${encodeURIComponent(space)}/add`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ handle, script_pubkey }),
+      },
+    );
+    if (!response.ok) {
+      const text = await response.text();
+      return { ok: false, error: text.trim() || `HTTP ${response.status}` };
+    }
+    return { ok: true };
+  } catch (error) {
+    console.error("Failed to send handle add request:", error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+export async function fetchHandleCertificateJson(
+  network: Network,
+  handle: string,
+): Promise<
+  | { ok: true; data: unknown }
+  | { ok: false; error: string; status?: number }
+> {
+  const parts = handle.split("@");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return { ok: false, error: "Invalid handle format" };
+  }
+  const subname = parts[0];
+  const spaceName = parts[1];
+  const url = `${getApiBaseUrl(network)}/subsd/spaces/${encodeURIComponent(spaceName)}/${encodeURIComponent(subname)}/cert.json`;
+  try {
+    console.log(`[API →] GET ${url}`);
+    const response = await fetch(url);
+    const text = await response.text();
+    let responseBody: unknown;
+    try {
+      responseBody = JSON.parse(text);
+    } catch {
+      responseBody = text;
+    }
+    console.log(`[API ←] ${response.status} ${url}`, responseBody);
+    if (!response.ok) {
+      return {
+        ok: false,
+        error:
+          typeof responseBody === "string"
+            ? responseBody.trim()
+            : `HTTP ${response.status}`,
+        status: response.status,
+      };
+    }
+    return { ok: true, data: responseBody };
+  } catch (error) {
+    console.error("Failed to fetch certificate JSON:", error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 export async function reserveHandle(

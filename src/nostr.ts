@@ -15,7 +15,7 @@ export type NostrEventData = {
 
 export type NostrEvent = NostrEventData & {
   id: string;
-  pub: string;
+  pubkey: string;
   sig: string;
 };
 
@@ -43,7 +43,7 @@ export function isNostrEvent(obj: unknown): obj is NostrEvent {
 
   return (
     typeof event.id === "string" &&
-    typeof event.pub === "string" &&
+    typeof event.pubkey === "string" &&
     typeof event.sig === "string"
   );
 }
@@ -55,12 +55,12 @@ function getPub(prv: string): string {
 }
 
 async function getEventHash(
-  pub: string,
+  pubkey: string,
   data: NostrEventData,
 ): Promise<string> {
   const serialized = JSON.stringify([
     0,
-    pub,
+    pubkey,
     data.created_at,
     data.kind,
     data.tags,
@@ -79,8 +79,8 @@ export async function signNostrEvent(
   data: NostrEventData,
   prv: string,
 ): Promise<NostrEvent> {
-  const pub = getPub(prv);
-  const id = await getEventHash(pub, data);
+  const pubkey = getPub(prv);
+  const id = await getEventHash(pubkey, data);
 
   const prvBytes = Buffer.from(prv, "hex");
   const hashBytes = Buffer.from(id, "hex");
@@ -89,7 +89,7 @@ export async function signNostrEvent(
 
   return {
     ...data,
-    pub,
+    pubkey,
     id,
     sig,
   };

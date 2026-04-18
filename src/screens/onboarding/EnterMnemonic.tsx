@@ -28,9 +28,18 @@ export default function ({ navigation, route }: Props) {
   const inputRefs = useRef<(TextInput | null)[]>(Array(12).fill(null));
 
   const handleWordChange = (index: number, value: string) => {
-    const newWords = [...inputWords];
-    newWords[index] = value.toLowerCase().trim();
-    setInputWords(newWords);
+    const parts = value.trim().toLowerCase().split(/\s+/);
+    if (parts.length > 1) {
+      const newWords = Array(12).fill("");
+      for (let i = 0; i < Math.min(parts.length, 12); i++) {
+        newWords[i] = parts[i];
+      }
+      setInputWords(newWords);
+    } else {
+      const newWords = [...inputWords];
+      newWords[index] = parts[0] ?? "";
+      setInputWords(newWords);
+    }
 
     if (error) {
       setError(null);

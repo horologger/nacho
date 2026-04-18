@@ -9,7 +9,13 @@ import {
 } from "react-native";
 import { open } from "@/file";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useStore, Keystore, isKeystore } from "@/Store";
+import {
+  useStore,
+  Keystore,
+  KeystoreBackup,
+  isImportableKeystoreFile,
+} from "@/Store";
+import { xpubFromXprv } from "@/keys";
 import { OnboardingStackParamList } from "@/Navigation";
 import { Layout } from "@/ui/Layout";
 import { Header } from "@/ui/Header";
@@ -20,7 +26,9 @@ type Props = NativeStackScreenProps<OnboardingStackParamList, "ImportKeystore">;
 
 export default function ImportKeystore({ navigation }: Props) {
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
-  const [keystore, setKeystore] = useState<Keystore | null>(null);
+  const [keystore, setKeystore] = useState<
+    Keystore | KeystoreBackup | null
+  >(null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const selectFile = async () => {
@@ -31,7 +39,7 @@ export default function ImportKeystore({ navigation }: Props) {
     try {
       const { data, filename } = await open();
 
-      if (isKeystore(data)) {
+      if (isImportableKeystoreFile(data)) {
         setKeystore(data);
         setSelectedFileName(filename);
         setValidationError(null);
@@ -51,9 +59,12 @@ export default function ImportKeystore({ navigation }: Props) {
   };
 
   const handleImport = () => {
-    if (keystore) {
-      navigation.navigate("EnterMnemonic", keystore);
+    if (!keystore) {
+      return;
     }
+    const xpub =
+      "xprv" in keystore ? xpubFromXprv(keystore.xprv) : keystore.xpub;
+    navigation.navigate("EnterMnemonic", { xpub, handles: keystore.handles });
   };
 
   const renderFileInfo = () => {
