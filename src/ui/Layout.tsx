@@ -4,7 +4,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Extra space beyond safe-area bottom (mobile browser toolbars, in-app overlays). */
-const BOTTOM_UI_CLEARANCE = 48;
+const BOTTOM_UI_CLEARANCE = 10;
 
 interface LayoutProps {
   children: ReactNode;
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     backgroundColor: "#000000",
-    paddingTop: 20,
+    paddingTop: 12,
     paddingHorizontal: 20,
     zIndex: 10,
   },

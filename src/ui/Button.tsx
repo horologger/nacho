@@ -14,59 +14,31 @@ export function Button({
   type = "main",
   disabled = false,
 }: ButtonProps) {
-  const getButtonStyle = () => {
-    switch (type) {
-      case "main":
-        return [
-          styles.button,
-          styles.mainButton,
-          disabled && styles.mainButtonDisabled,
-        ];
-      case "danger":
-        return [
-          styles.button,
-          styles.dangerButton,
-          disabled && styles.dangerButtonDisabled,
-        ];
-      case "secondary":
-        return [
-          styles.button,
-          styles.secondaryButton,
-          disabled && styles.secondaryButtonDisabled,
-        ];
-    }
-  };
-
-  const getTextStyle = () => {
-    switch (type) {
-      case "main":
-        return [
-          styles.buttonText,
-          styles.mainButtonText,
-          disabled && styles.mainButtonTextDisabled,
-        ];
-      case "danger":
-        return [
-          styles.buttonText,
-          styles.dangerButtonText,
-          disabled && styles.dangerButtonTextDisabled,
-        ];
-      case "secondary":
-        return [
-          styles.buttonText,
-          styles.secondaryButtonText,
-          disabled && styles.secondaryButtonTextDisabled,
-        ];
-    }
-  };
+  const isDanger = type === "danger";
 
   return (
     <TouchableOpacity
-      style={getButtonStyle()}
+      style={[
+        styles.button,
+        isDanger ? styles.dangerButton : styles.mainButton,
+        disabled &&
+          (isDanger ? styles.dangerButtonDisabled : styles.mainButtonDisabled),
+      ]}
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
     >
-      <Text style={getTextStyle()}>{text}</Text>
+      <Text
+        style={[
+          styles.buttonText,
+          isDanger ? styles.dangerButtonText : styles.mainButtonText,
+          disabled &&
+            (isDanger
+              ? styles.dangerButtonTextDisabled
+              : styles.mainButtonTextDisabled),
+        ]}
+      >
+        {text}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -74,13 +46,13 @@ export function Button({
 const styles = StyleSheet.create({
   button: {
     borderRadius: 50,
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    marginBottom: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    marginBottom: 8,
     alignItems: "center",
   },
   buttonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "400",
   },
   mainButton: {
@@ -96,23 +68,12 @@ const styles = StyleSheet.create({
   mainButtonTextDisabled: {
     color: "#FFFFFF",
   },
-  secondaryButton: {
-    backgroundColor: "transparent",
-  },
-  secondaryButtonText: {
-    color: "#FF7B00",
-  },
-  secondaryButtonDisabled: {
-    backgroundColor: "transparent",
-  },
-  secondaryButtonTextDisabled: {
-    color: "#B8571F",
-  },
   dangerButton: {
     backgroundColor: "#330000",
   },
   dangerButtonText: {
     color: "#FF0000",
+    fontWeight: "600",
   },
   dangerButtonDisabled: {
     backgroundColor: "#1A0000",

@@ -584,7 +584,7 @@ export default function ShowHandle({ route, navigation }: Props) {
             style={styles.labelPressable}
           >
             <Text style={[styles.label, styles.labelInRow]}>
-              {nostrKeyView === "pubkey" ? "Nostr Pubkey" : "Nostr NSEC"}
+              {nostrKeyView === "pubkey" ? "Nostr Pubkey" : "Nostr nsec"}
             </Text>
           </Pressable>
           <Pressable
