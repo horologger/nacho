@@ -4,7 +4,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Extra space beyond safe-area bottom (mobile browser toolbars, in-app overlays). */
-const BOTTOM_UI_CLEARANCE = 10;
+const BOTTOM_UI_CLEARANCE = 50;
 
 interface LayoutProps {
   children: ReactNode;
