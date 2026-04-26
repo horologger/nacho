@@ -1,5 +1,6 @@
 import React from "react";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet, Text, Linking } from "react-native";
+import { Asset } from "expo-asset";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { OnboardingStackParamList } from "@/Navigation";
 import { Button } from "@/ui/Button";
@@ -7,6 +8,17 @@ import { Layout } from "@/ui/Layout";
 import { SvgXml } from "react-native-svg";
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, "Home">;
+
+async function openWorkshopPdf() {
+  const asset = Asset.fromModule(
+    require("../../../assets/bitcoin2026_workshop_formatted.pdf"),
+  );
+  await asset.downloadAsync();
+  const uri = asset.localUri ?? asset.uri;
+  if (uri) {
+    await Linking.openURL(uri);
+  }
+}
 
 export default function ({ navigation }: Props) {
   return (
@@ -56,6 +68,28 @@ export default function ({ navigation }: Props) {
             <Text style={styles.whiteText}>2026</Text>
           </View>
           <Text style={styles.dateLine}>April 27-29</Text>
+          <View style={styles.bitcoin2026Row}>
+          <Text style={styles.whiteText}>Complete Sovereignty</Text>
+          </View>
+          <Text style={styles.whiteText}>with</Text>
+          <Text
+            onPress={() => void Linking.openURL("https://spaceswallet.com")}
+            style={styles.spacesWalletLink}
+            accessibilityRole="link"
+            accessibilityLabel="SpacesWallet, opens in browser"
+          >
+            SpacesWallet
+          </Text>
+          <Text
+            onPress={() => {
+              void openWorkshopPdf();
+            }}
+            style={styles.docLink}
+            accessibilityRole="link"
+            accessibilityLabel="Bitcoin 2026 workshop PDF"
+          >
+            Bitcoin 2026 workshop (PDF)
+          </Text>
         </View>
       </View>
     </Layout>
@@ -105,6 +139,17 @@ const styles = StyleSheet.create({
   whiteText: {
     fontSize: 20,
     fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  spacesWalletLink: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#8d1d75",
+  },
+  docLink: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: "600",
     color: "#FFFFFF",
   },
 });
